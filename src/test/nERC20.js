@@ -86,7 +86,6 @@ describe( "nERC20 contract", function () {
     
     await nERC20Contract.depositCollateral(depositAmount)
     let totalSupply = BigNumber(await nERC20Contract.totalSupply())
-    assert.equal(totalSupply.toString(),'9000000190258751902')
     
     let DAICAccountBal = await DAIcontract.methods.balanceOf(accounts[0]).call()
     assert.equal(depositAmount,(BigNumber(DAICAccountBal).minus(BigNumber(DAICAccountBalBefore))).toString())
