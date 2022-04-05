@@ -144,11 +144,10 @@ contract nERC20 is ERC20{
     /**
         Function to get currentSumOfInterestAmount
      */
-    function getCurrentSumOfInterestAmount()view internal returns (uint256 currentSumOfInterestCalc){
+    function getCurrentSumOfInterestAmount() view internal returns (uint256 currentSumOfInterestCalc){
         uint256 deltaBlockNum = (block.number - currentBlockNumber);
         
         currentSumOfInterestCalc = (deltaBlockNum*currentInterestRatePerBlock);
-
     }
 
     /**

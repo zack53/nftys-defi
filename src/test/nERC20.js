@@ -17,6 +17,8 @@ describe( "nERC20 contract", function () {
   let accounts
   let decimals = 18
   let nERC20Contract
+  let unclaimedTokensDelta
+  let blocksIncremented = 0
   before(async function () {
     accounts = await web3.eth.getAccounts()
     //Checks to see if the first account has ETH
@@ -46,7 +48,7 @@ describe( "nERC20 contract", function () {
 
   it("Should transfer WMATIC in exchange for DAI", async function (){
 
-    let wethAmountToTransfer = 15
+    let wethAmountToTransfer = 30
     //Send ETH to WETH contract in return for WETH
     await wrapToken(wethAmountToTransfer, accounts[0], WETHContract)
     //Sends WETH to the deployed contract and
@@ -68,24 +70,47 @@ describe( "nERC20 contract", function () {
     assert.notEqual(DAICBal/10**8, 0)
   })
 
-  it("Should have totalSupply of amount minted", async function () {
+  it("Should transfer some DAI to accounts[1]", async() =>{
+    let tradeAmount = BigNumber(10).shiftedBy(decimals)
+    await DAIcontract.methods.transfer(accounts[1], tradeAmount.toString()).send({from:accounts[0]})
+    let daiBal = await DAIcontract.methods.balanceOf(accounts[1]).call()
+    assert.equal(tradeAmount.toString(), daiBal.toString())
+  })
+
+  it("Should have totalSupply of amount minted for accounts[0]", async function () {
     let mintAmount = BigNumber(10).shiftedBy(decimals).toString()
     assert.equal(await  nERC20Contract.totalSupply(),0)
     await DAIcontract.methods.approve(nERC20Contract.address, mintAmount).send({from:accounts[0]})
+    // Increments one block
     await nERC20Contract.mint(mintAmount)
+    blocksIncremented++
     assert.equal(await nERC20Contract.totalSupply(),mintAmount)
     let DAICBal = await DAIcontract.methods.balanceOf(nERC20Contract.address).call()
     assert.equal(DAICBal,mintAmount)
+    // Increments the block by using accrueInterest and gets delta
+    // amount that we should be gaining interest by to validate later
+    await nERC20Contract.accrueInterest()
+    blocksIncremented++
+    unclaimedTokensDelta = await nERC20Contract.viewAccruedTokensAmount()
+  })
+
+  it("Should mint value for accounts[1]", async() =>{
+    let mintAmount = BigNumber(10).shiftedBy(decimals).toString()
+    await DAIcontract.methods.approve(nERC20Contract.address, mintAmount).send({from:accounts[1]})
+    let balanceBefore = await nERC20Contract.balanceOf(accounts[1])
+    // Increments one block
+    await nERC20Contract.mint(mintAmount,{from:accounts[1]})
+    blocksIncremented++
+    let balanceAfter = await nERC20Contract.balanceOf(accounts[1])
+    assert.equal(mintAmount,balanceAfter.toString())
   })
 
   it("Should view unclaimed tokens", async function () {
-    // put logic in to see if total supply increased by the amount
-    // of claimed tokens
+    // increments one block
     await nERC20Contract.accrueInterest()
-    let unclaimedTokensDelta = await nERC20Contract.viewAccruedTokensAmount()
-    await nERC20Contract.accrueInterest()
+    blocksIncremented++
     let unclaimedTokensAfter = await nERC20Contract.viewAccruedTokensAmount()
-    assert.approximately(BigNumber(unclaimedTokensDelta).multipliedBy(2).toNumber(),BigNumber(unclaimedTokensAfter).toNumber(),5)
+    assert.approximately(BigNumber(unclaimedTokensDelta).multipliedBy(blocksIncremented).toNumber(),BigNumber(unclaimedTokensAfter).toNumber(),5000)
 
   })
 
