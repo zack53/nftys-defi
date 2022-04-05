@@ -79,16 +79,30 @@ describe( "nERC20 contract", function () {
   })
 
   it("Should deposit collateral and get DAI back", async function () {
-    let depositAmount = BigNumber(1).shiftedBy(decimals).toString()
+    let depositAmount = BigNumber(1).shiftedBy(decimals)
     let DAICBal = await DAIcontract.methods.balanceOf(nERC20Contract.address).call()
     let DAICAccountBalBefore = await DAIcontract.methods.balanceOf(accounts[0]).call()
     assert.equal(await  nERC20Contract.totalSupply(),DAICBal)
     
-    await nERC20Contract.depositCollateral(depositAmount)
-    let totalSupply = BigNumber(await nERC20Contract.totalSupply())
+    await nERC20Contract.depositCollateral(depositAmount.toString())
+    assert.equal((await nERC20Contract.totalSupply()).toString(),(BigNumber(DAICBal).minus(depositAmount)).toString())
     
     let DAICAccountBal = await DAIcontract.methods.balanceOf(accounts[0]).call()
     assert.equal(depositAmount,(BigNumber(DAICAccountBal).minus(BigNumber(DAICAccountBalBefore))).toString())
+  })
+
+  it("Should claim earned tokens for account", async function () {
+    // put logic in to see if total supply increased by the amount
+    // of claimed tokens
+    let tokenAmountBefore = await nERC20Contract.balanceOf(accounts[0])
+    let totalSupplyBefore = await nERC20Contract.totalSupply()
+    await nERC20Contract.claimAccruedTokens()
+    let tokenAmountAfter = await nERC20Contract.balanceOf(accounts[0])
+    let totalSupplyAfter = await nERC20Contract.totalSupply()
+    let deltaTokenAccountAmount = tokenAmountAfter-tokenAmountBefore
+    let deltaTotalSupply = totalSupplyAfter-totalSupplyBefore
+    assert.equal(deltaTokenAccountAmount,deltaTotalSupply)
+
   })
 
 })
