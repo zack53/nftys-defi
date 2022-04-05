@@ -78,6 +78,17 @@ describe( "nERC20 contract", function () {
     assert.equal(DAICBal,mintAmount)
   })
 
+  it("Should view unclaimed tokens", async function () {
+    // put logic in to see if total supply increased by the amount
+    // of claimed tokens
+    await nERC20Contract.accrueInterest()
+    let unclaimedTokensDelta = await nERC20Contract.viewAccruedTokensAmount()
+    await nERC20Contract.accrueInterest()
+    let unclaimedTokensAfter = await nERC20Contract.viewAccruedTokensAmount()
+    assert.approximately(BigNumber(unclaimedTokensDelta).multipliedBy(2).toNumber(),BigNumber(unclaimedTokensAfter).toNumber(),5)
+
+  })
+
   it("Should deposit collateral and get DAI back", async function () {
     let depositAmount = BigNumber(1).shiftedBy(decimals)
     let DAICBal = await DAIcontract.methods.balanceOf(nERC20Contract.address).call()

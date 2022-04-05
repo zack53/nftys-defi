@@ -42,49 +42,69 @@ import "hardhat/console.sol";
 
 contract nERC20 is ERC20{
 
+    // Variables needed to store contract state
     uint8 immutable _decimals;
     uint8 currentInterestRatePerBlock = 5;
     IERC20 immutable erc20Token;
+    uint256 constant divideInterestPerBlock = 100*2628000;
     uint256 currentBlockNumber;
     uint256 currentSumOfInterest;
     uint256 currentUnclaimedTokenAmount;
-    uint256 constant divideInterestPerBlock = 100*2628000;
 
+    // Struct to store user information needed to find
+    // delta of interest gained for deposited amount.
     struct AccountInterest {
         uint256 currentSumOfInterest;
         uint256 currentBlockNumber;
         uint256 unclaimedInterestTokenAmount;
     }
 
+    // Enum information to stop calculating interest if we are not
+    // ready to calculate
     enum AccrueInterestState { calculatingInterest, readyToCalculate }
     AccrueInterestState currentState = AccrueInterestState.readyToCalculate;
 
+    // Mapping variable to keep up with AccountInterest on account basis
     mapping(address => AccountInterest) private AccountInterestMapping;
 
+    /**
+        Constructor for nERC20 token, passes values to ERC20 parent
+     */
     constructor(string memory name_, string memory symbol_, uint8 decimals_, IERC20 tokenAddress_) ERC20(name_, symbol_){
         _decimals = decimals_;
         erc20Token = tokenAddress_;
         currentBlockNumber = block.number;
     }
 
-
+    /**
+        Increases total supply. Requires user to transfer original token
+        to receive collateral token.
+     */
     function mint(uint256 amount) external{
+        require(erc20Token.balanceOf(msg.sender) >= amount, 'You do not have enough ERC20 token to make this transaction.');
         accrueInterest();
-        // Need to apply accrued interest to account before allowing to mint more.
-        updateAccountInterestMapping(false);
+        updateAccountInterestMapping();
         SafeERC20.safeTransferFrom(erc20Token, msg.sender, address(this), amount);
         _mint(msg.sender,amount);
     }
 
-    
+    /**
+        Overrides the default deciaml amount for ERC20 parent contract
+     */
     function decimals() public view virtual override returns (uint8) {
         return _decimals;
     }
 
+    /**
+        Function that deposits nERC20 token and gets out
+        the original token deposited for investors
+     */
     function depositCollateral(uint256 amount) external{
-        accrueInterest();
+        require(balanceOf(msg.sender) > amount, 'You do not enough collateral to deposit');
 
-        updateAccountInterestMapping(false);
+        accrueInterest();
+        updateAccountInterestMapping();
+
         
         SafeERC20.safeTransfer(erc20Token,msg.sender,amount);
         _burn(msg.sender, amount);
@@ -105,8 +125,6 @@ contract nERC20 is ERC20{
             return 0;
         }
 
-
-
         // Ensures no interest is accrued if DAI tokens on contract is 0
         if(totalSupply() == 0){
             currentBlockNumber = block.number;
@@ -114,13 +132,23 @@ contract nERC20 is ERC20{
             return 0;
         }
 
-        uint256 totalBlocksOfInterest = (block.number - currentBlockNumber);
+        uint256 currentSumOfInterestCalc = getCurrentSumOfInterestAmount();
         // Multiply 100 by average number of blocks a year to give appropriate amount of interest
-        accruedInterestAmount = (totalBlocksOfInterest*totalSupply()*currentInterestRatePerBlock)/divideInterestPerBlock;
-        currentSumOfInterest += (totalBlocksOfInterest*currentInterestRatePerBlock);
+        accruedInterestAmount = currentSumOfInterestCalc*totalSupply()/divideInterestPerBlock;
+        currentSumOfInterest += currentSumOfInterestCalc;
         addTotalUnclaimedTokens(accruedInterestAmount);
         currentBlockNumber = block.number;
         currentState = AccrueInterestState.readyToCalculate;
+    }
+
+    /**
+        Function to get currentSumOfInterestAmount
+     */
+    function getCurrentSumOfInterestAmount()view internal returns (uint256 currentSumOfInterestCalc){
+        uint256 deltaBlockNum = (block.number - currentBlockNumber);
+        
+        currentSumOfInterestCalc = (deltaBlockNum*currentInterestRatePerBlock);
+
     }
 
     /**
@@ -139,39 +167,55 @@ contract nERC20 is ERC20{
      }
 
     /**
-        View unclaimed tokens for user AccountInterest
+        get unclaimed tokens for user AccountInterest
      */
 
-     function getAccruedTokensAmount() view public returns(uint256 accruedTokenAmount){
+     function getAccruedTokensAmount() view internal returns(uint256 accruedTokenAmount){
+        AccountInterest memory accountInterestMapping = AccountInterestMapping[msg.sender];
         // Get delta information to calculate current account portion
         (uint256 deltaBlockNum, uint256 deltaAvgInterest) = abi.decode(getAccountInterestDelta(), (uint256, uint256));
-        // Get current account tokens invested
-        accruedTokenAmount = deltaAvgInterest*deltaBlockNum*balanceOf(msg.sender)/divideInterestPerBlock;
+        // This is calculating delta from last deposit / withdrawl of account to last accruedInterest
+        accruedTokenAmount = (deltaAvgInterest*deltaBlockNum*balanceOf(msg.sender)/divideInterestPerBlock) + accountInterestMapping.unclaimedInterestTokenAmount;
+     }
+
+    /**
+        View unclaimed tokens for user AccountInterest
+     */
+     function viewAccruedTokensAmount() view external returns(uint256 accruedTokenAmount){
+        // This is calculating delta from last deposit / withdrawl of account to last accruedInterest
+        accruedTokenAmount = getAccruedTokensAmount();
+        // This is the delta from last accruedInterest() to current block should be 0 when
+        // accrued is called before getAccruedTokensAmount()
+        accruedTokenAmount += getCurrentSumOfInterestAmount()*balanceOf(msg.sender)/divideInterestPerBlock;
 
      }
+     
      /**
         Claims token for user account
       */
     function claimAccruedTokens() public{
         accrueInterest();
-        // Get current account tokens invested
-        uint256 unclaimedTokenAmount = getAccruedTokensAmount();
+        AccountInterest memory accountInterestMapping = AccountInterestMapping[msg.sender];
         // Subtract from unclaimed pool
-        subTotalUnclaimedTokens(unclaimedTokenAmount);
+        subTotalUnclaimedTokens(accountInterestMapping.unclaimedInterestTokenAmount);
         // Send user unclaimed tokens
-        _mint(msg.sender,unclaimedTokenAmount);
-        updateAccountInterestMapping(true);
+        _mint(msg.sender,accountInterestMapping.unclaimedInterestTokenAmount);
+        AccountInterestMapping[msg.sender] = AccountInterest(currentSumOfInterest, currentBlockNumber, 0);
     }
 
     /**
-        Function to calculate user AccountInterest delta variables
+        Function to calculate user AccountInterest delta variables right after a
+        accrueInterest() function
      */
      function getAccountInterestDelta() view internal returns(bytes memory params){
         AccountInterest memory currentAccount = AccountInterestMapping[msg.sender];
 
-        uint256 deltaInterestGained = currentSumOfInterest - currentAccount.currentSumOfInterest;
         uint256 deltaBlockNum = currentBlockNumber - currentAccount.currentBlockNumber;
-        uint256 deltaAvgInterest = deltaInterestGained/deltaBlockNum;
+        uint256 deltaAvgInterest;
+        if(deltaBlockNum != 0){
+            uint256 deltaInterestGained = currentSumOfInterest - currentAccount.currentSumOfInterest;
+            deltaAvgInterest = deltaInterestGained/deltaBlockNum;
+        }
 
         params = abi.encode(deltaBlockNum, deltaAvgInterest);
      }
@@ -181,15 +225,9 @@ contract nERC20 is ERC20{
         If isClaimed == true, we set the unclaimedInterestTokenAmount to 0 because 
         we put those tokens to the account.
      */
-     function updateAccountInterestMapping(bool isClaimed) internal {
-
+     function updateAccountInterestMapping() internal {
         // Update current account information to latest data
-        if(isClaimed){
-            AccountInterestMapping[msg.sender] = AccountInterest(currentSumOfInterest, currentBlockNumber, 0);
-        } else{
-            AccountInterest memory accountInterestMapping = AccountInterestMapping[msg.sender];
-            AccountInterestMapping[msg.sender] = AccountInterest(currentSumOfInterest, currentBlockNumber, getAccruedTokensAmount()+accountInterestMapping.unclaimedInterestTokenAmount);
-        }
+        AccountInterestMapping[msg.sender] = AccountInterest(currentSumOfInterest, currentBlockNumber, getAccruedTokensAmount());
         
      }
 
