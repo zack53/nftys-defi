@@ -6,7 +6,7 @@ const { ERC20ABI, DAI, WETH, UniSwapV3RouterAddress} = require('../EVMAddresses/
 const { wrapToken } = require('../util/TokenUtil')
 const { BigNumber } = require('bignumber.js')
 //Creates a truffe contract from compiled artifacts.
-const nERC20 = artifacts.require("nERC20")
+const nERC20 = artifacts.require("NERC20")
 const UniSwapSingleSwap = artifacts.require("UniSwapSingleSwap")
 
 const DAIcontract = new web3.eth.Contract(ERC20ABI, DAI)
@@ -82,7 +82,7 @@ describe( "nERC20 contract", function () {
     assert.equal(await  nERC20Contract.totalSupply(),0)
     await DAIcontract.methods.approve(nERC20Contract.address, mintAmount).send({from:accounts[0]})
     // Increments one block
-    await nERC20Contract.mint(mintAmount)
+    await nERC20Contract.supplyTokens(mintAmount)
     blocksIncremented++
     assert.equal(await nERC20Contract.totalSupply(),mintAmount)
     let DAICBal = await DAIcontract.methods.balanceOf(nERC20Contract.address).call()
@@ -94,12 +94,12 @@ describe( "nERC20 contract", function () {
     unclaimedTokensDelta = await nERC20Contract.viewAccruedTokensAmount()
   })
 
-  it("Should mint value for accounts[1]", async() =>{
+  it("Should supplyTokens value for accounts[1]", async() =>{
     let mintAmount = BigNumber(10).shiftedBy(decimals).toString()
     await DAIcontract.methods.approve(nERC20Contract.address, mintAmount).send({from:accounts[1]})
     let balanceBefore = await nERC20Contract.balanceOf(accounts[1])
     // Increments one block
-    await nERC20Contract.mint(mintAmount,{from:accounts[1]})
+    await nERC20Contract.supplyTokens(mintAmount,{from:accounts[1]})
     blocksIncremented++
     let balanceAfter = await nERC20Contract.balanceOf(accounts[1])
     assert.equal(mintAmount,balanceAfter.toString())
@@ -120,7 +120,7 @@ describe( "nERC20 contract", function () {
     let DAICAccountBalBefore = await DAIcontract.methods.balanceOf(accounts[0]).call()
     assert.equal(await  nERC20Contract.totalSupply(),DAICBal)
     
-    await nERC20Contract.depositCollateral(depositAmount.toString())
+    await nERC20Contract.withdrawTokens(depositAmount.toString())
     assert.equal((await nERC20Contract.totalSupply()).toString(),(BigNumber(DAICBal).minus(depositAmount)).toString())
     
     let DAICAccountBal = await DAIcontract.methods.balanceOf(accounts[0]).call()
