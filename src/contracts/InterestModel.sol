@@ -3,11 +3,8 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "hardhat/console.sol";
 
 /**
     nERC20 token TODO: implement accrued interest based on totalSupply amount.
@@ -40,16 +37,14 @@ import "hardhat/console.sol";
     demand curve.
  */
 
-contract nERC20 is ERC20{
+contract InterestModel {
 
     // Variables needed to store contract state
-    uint8 immutable _decimals;
-    uint8 currentInterestRatePerBlock = 5;
-    IERC20 immutable erc20Token;
-    uint256 constant divideInterestPerBlock = 100*2628000;
-    uint256 currentBlockNumber;
-    uint256 currentSumOfInterest;
-    uint256 currentUnclaimedTokenAmount;
+    uint8 internal currentInterestRatePerBlock = 5;
+    uint256 internal constant divideInterestPerBlock = 100*2628000;
+    uint256 internal currentBlockNumber;
+    uint256 internal currentSumOfInterest;
+    uint256 internal currentUnclaimedTokenAmount;
 
     // Struct to store user information needed to find
     // delta of interest gained for deposited amount.
@@ -65,50 +60,7 @@ contract nERC20 is ERC20{
     AccrueInterestState currentState = AccrueInterestState.readyToCalculate;
 
     // Mapping variable to keep up with AccountInterest on account basis
-    mapping(address => AccountInterest) private AccountInterestMapping;
-
-    /**
-        Constructor for nERC20 token, passes values to ERC20 parent
-     */
-    constructor(string memory name_, string memory symbol_, uint8 decimals_, IERC20 tokenAddress_) ERC20(name_, symbol_){
-        _decimals = decimals_;
-        erc20Token = tokenAddress_;
-        currentBlockNumber = block.number;
-    }
-
-    /**
-        Increases total supply. Requires user to transfer original token
-        to receive collateral token.
-     */
-    function mint(uint256 amount) external{
-        require(erc20Token.balanceOf(msg.sender) >= amount, 'You do not have enough ERC20 token to make this transaction.');
-        accrueInterest();
-        updateAccountInterestMapping();
-        SafeERC20.safeTransferFrom(erc20Token, msg.sender, address(this), amount);
-        _mint(msg.sender,amount);
-    }
-
-    /**
-        Overrides the default deciaml amount for ERC20 parent contract
-     */
-    function decimals() public view virtual override returns (uint8) {
-        return _decimals;
-    }
-
-    /**
-        Function that deposits nERC20 token and gets out
-        the original token deposited for investors
-     */
-    function depositCollateral(uint256 amount) external{
-        require(balanceOf(msg.sender) > amount, 'You do not enough collateral to deposit');
-
-        accrueInterest();
-        updateAccountInterestMapping();
-
-        
-        SafeERC20.safeTransfer(erc20Token,msg.sender,amount);
-        _burn(msg.sender, amount);
-    }
+    mapping (address => AccountInterest) internal  AccountInterestMapping;
 
     /**
         Accrue interest function. Calculates whenever account action happens that affects
@@ -126,7 +78,7 @@ contract nERC20 is ERC20{
         }
 
         // Ensures no interest is accrued if DAI tokens on contract is 0
-        if(totalSupply() == 0){
+        if(IERC20(address(this)).totalSupply() == 0){
             currentBlockNumber = block.number;
             currentState = AccrueInterestState.readyToCalculate;
             return 0;
@@ -134,7 +86,7 @@ contract nERC20 is ERC20{
 
         uint256 currentSumOfInterestCalc = getCurrentSumOfInterestAmount();
         // Multiply 100 by average number of blocks a year to give appropriate amount of interest
-        accruedInterestAmount = currentSumOfInterestCalc*totalSupply()/divideInterestPerBlock;
+        accruedInterestAmount = currentSumOfInterestCalc*IERC20(address(this)).totalSupply()/divideInterestPerBlock;
         currentSumOfInterest += currentSumOfInterestCalc;
         addTotalUnclaimedTokens(accruedInterestAmount);
         currentBlockNumber = block.number;
@@ -174,7 +126,7 @@ contract nERC20 is ERC20{
         // Get delta information to calculate current account portion
         (uint256 deltaBlockNum, uint256 deltaAvgInterest) = abi.decode(getAccountInterestDelta(), (uint256, uint256));
         // This is calculating delta from last deposit / withdrawl of account to last accruedInterest
-        accruedTokenAmount = (deltaAvgInterest*deltaBlockNum*balanceOf(msg.sender)/divideInterestPerBlock) + accountInterestMapping.unclaimedInterestTokenAmount;
+        accruedTokenAmount = (deltaAvgInterest*deltaBlockNum*IERC20(address(this)).balanceOf(msg.sender)/divideInterestPerBlock) + accountInterestMapping.unclaimedInterestTokenAmount;
      }
 
     /**
@@ -185,22 +137,9 @@ contract nERC20 is ERC20{
         accruedTokenAmount = getAccruedTokensAmount();
         // This is the delta from last accruedInterest() to current block should be 0 when
         // accrued is called before getAccruedTokensAmount()
-        accruedTokenAmount += getCurrentSumOfInterestAmount()*balanceOf(msg.sender)/divideInterestPerBlock;
+        accruedTokenAmount += getCurrentSumOfInterestAmount()*IERC20(address(this)).balanceOf(msg.sender)/divideInterestPerBlock;
 
      }
-     
-     /**
-        Claims token for user account
-      */
-    function claimAccruedTokens() public{
-        accrueInterest();
-        AccountInterest memory accountInterestMapping = AccountInterestMapping[msg.sender];
-        // Subtract from unclaimed pool
-        subTotalUnclaimedTokens(accountInterestMapping.unclaimedInterestTokenAmount);
-        // Send user unclaimed tokens
-        _mint(msg.sender,accountInterestMapping.unclaimedInterestTokenAmount);
-        AccountInterestMapping[msg.sender] = AccountInterest(currentSumOfInterest, currentBlockNumber, 0);
-    }
 
     /**
         Function to calculate user AccountInterest delta variables right after a
@@ -229,5 +168,10 @@ contract nERC20 is ERC20{
         AccountInterestMapping[msg.sender] = AccountInterest(currentSumOfInterest, currentBlockNumber, getAccruedTokensAmount());
         
      }
+
+     /**
+        TODO: Create a function to transferFrom NFT to this contract in exchange for
+        requested ERC20 token to borrow.
+      */
 
 }
