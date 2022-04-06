@@ -141,4 +141,18 @@ describe( "nERC20 contract", function () {
 
   })
 
+  it("Should borrow some DAI",async() =>{
+    let borrowAmount = BigNumber(1).shiftedBy(decimals)
+    let DAICAccountBalBefore = await DAIcontract.methods.balanceOf(accounts[2]).call()
+    await nERC20Contract.borrowTokens(borrowAmount.toString(),2,{from:accounts[2]})
+    let DAICAccountBalAfter = await DAIcontract.methods.balanceOf(accounts[2]).call()
+    assert.equal(DAICAccountBalAfter-DAICAccountBalBefore,borrowAmount)
+
+    await nERC20Contract.accrueInterest()
+    let borrowInterest = await nERC20Contract.viewBorrowAccruedTokensAmount({from:accounts[2]})
+    console.log('Currnet borrow interest: ' + borrowInterest.toString())
+    let totalBorrowAmount = await nERC20Contract.totalAmountBorrowed()
+    //console.log(totalBorrowAmount.toString())
+  })
+
 })

@@ -67,9 +67,9 @@ contract NERC20 is ERC20, InterestModel{
         to receive collateral token.
      */
     function supplyTokens(uint256 amount) external {
-        require(erc20Token.balanceOf(msg.sender) >= amount, 'You do not have enough ERC20 token to make this transaction.');
         accrueInterest();
         updateAccountInterestMapping();
+        require(erc20Token.balanceOf(msg.sender) >= amount, 'You do not have enough ERC20 token to make this transaction.');
         SafeERC20.safeTransferFrom(erc20Token, msg.sender, address(this), amount);
         _mint(msg.sender,amount);
     }
@@ -78,13 +78,11 @@ contract NERC20 is ERC20, InterestModel{
         Function that deposits nERC20 token and gets out
         the original token deposited for investors
      */
-    function withdrawTokens(uint256 amount) external{
-        require(balanceOf(msg.sender) > amount, 'You do not enough collateral to deposit');
-
+    function withdrawTokens(uint256 amount) external {
         accrueInterest();
         updateAccountInterestMapping();
+        require(balanceOf(msg.sender) > amount, 'You do not have enough collateral tokens to withdraw this amount.');
 
-        
         SafeERC20.safeTransfer(erc20Token,msg.sender,amount);
         _burn(msg.sender, amount);
     }
@@ -92,7 +90,7 @@ contract NERC20 is ERC20, InterestModel{
      /**
         Claims token for user account
       */
-    function claimAccruedTokens() public{
+    function claimAccruedTokens() public {
         accrueInterest();
         AccountInterest memory accountInterestMapping = AccountInterestMapping[msg.sender];
         // Subtract from unclaimed pool
@@ -101,4 +99,55 @@ contract NERC20 is ERC20, InterestModel{
         _mint(msg.sender,accountInterestMapping.unclaimedInterestTokenAmount);
         AccountInterestMapping[msg.sender] = AccountInterest(currentSumOfInterest, currentBlockNumber, 0);
     }
+
+    /**
+        Borrows tokens
+        TODO: implement the nftCollateral transfer
+     */
+     function borrowTokens(uint256 amount, uint256 nftCollateral) external {
+         accrueInterest();
+         require(erc20Token.balanceOf(address(this)) >= amount, 'We do not have enough funds to fund this loan.');
+         updateBorrowInterestMapping(amount);
+         borrowAmount += amount;
+         SafeERC20.safeTransfer(erc20Token,msg.sender,amount);
+     }
+
+     /**
+        Repay all tokens
+      */
+      function repayFullBorrowAmount() public {
+        accrueInterest();
+        updateBorrowInterestMapping(0);
+
+        BorrowInterest memory borrowInterestMapping = BorrowInterestMapping[msg.sender];
+        uint256 fullAmountToRepay = borrowInterestMapping.borrowAmountNotCompounded + borrowInterestMapping.borrowAmount;
+
+        require(erc20Token.balanceOf(msg.sender) >= fullAmountToRepay);
+
+        SafeERC20.safeTransferFrom(erc20Token, msg.sender, address(this), fullAmountToRepay);
+
+        borrowAmount -= fullAmountToRepay;
+        delete BorrowInterestMapping[msg.sender];
+      }
+
+      /**
+        Repay a portion of the tokens
+       */
+      function repayBorrowAmount(uint256 amount) external {
+        accrueInterest();
+        updateBorrowInterestMapping(0);
+
+        require(erc20Token.balanceOf(msg.sender) >= amount, 'You do not have enough ERC20 token to pay this amount.');
+        
+        BorrowInterest memory borrowInterestMapping = BorrowInterestMapping[msg.sender];
+
+        if(borrowInterestMapping.borrowAmount + borrowInterestMapping.borrowAmountNotCompounded < amount){
+            repayFullBorrowAmount();
+        }else{
+            SafeERC20.safeTransferFrom(erc20Token, msg.sender, address(this), amount);
+            BorrowInterestMapping[msg.sender] = BorrowInterest(currentSumOfBorrowInterest, currentBlockNumber, 0,borrowInterestMapping.borrowAmount-amount);
+            borrowAmount -= amount;
+        }
+
+      }
 }
