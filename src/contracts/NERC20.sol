@@ -113,7 +113,7 @@ contract NERC20 is ERC20, InterestModel{
      }
 
      /**
-        Repay all tokens
+        Repay full amount of borrowed tokens
       */
       function repayFullBorrowAmount() public {
         accrueInterest();
@@ -131,7 +131,7 @@ contract NERC20 is ERC20, InterestModel{
       }
 
       /**
-        Repay a portion of the tokens
+        Repay a portion of the borrowed tokens
        */
       function repayBorrowAmount(uint256 amount) external {
         accrueInterest();
@@ -149,5 +149,5 @@ contract NERC20 is ERC20, InterestModel{
             borrowAmount -= amount;
         }
 
-      }
+    }
 }

@@ -148,6 +148,8 @@ describe( "nERC20 contract", function () {
     let DAICAccountBalAfter = await DAIcontract.methods.balanceOf(accounts[2]).call()
     assert.equal(DAICAccountBalAfter-DAICAccountBalBefore,borrowAmount)
 
+    let borrowInterestBefore = await nERC20Contract.viewBorrowAccruedTokensAmount({from:accounts[2]})
+    console.log(borrowInterestBefore.toString())
     await nERC20Contract.accrueInterest()
     let borrowInterest = await nERC20Contract.viewBorrowAccruedTokensAmount({from:accounts[2]})
     console.log('Currnet borrow interest: ' + borrowInterest.toString())

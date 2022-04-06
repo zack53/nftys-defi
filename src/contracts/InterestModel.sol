@@ -236,7 +236,10 @@ contract InterestModel {
      function updateBorrowInterestMapping(uint256 amount) internal {
         BorrowInterest memory borrowInterestMapping =  BorrowInterestMapping[msg.sender];
         // Update current account information to latest data
-        BorrowInterestMapping[msg.sender] = BorrowInterest(currentSumOfBorrowInterest, currentBlockNumber, getBorrowAccruedTokensAmount(), borrowInterestMapping.borrowAmount+amount);
+        uint256 borrowAmountToCompound = getBorrowAccruedTokensAmount();
+        BorrowInterestMapping[msg.sender] = BorrowInterest(currentSumOfBorrowInterest, currentBlockNumber, borrowAmountToCompound, borrowInterestMapping.borrowAmount+amount);
+        borrowAmount += borrowAmountToCompound;
+        borrowAmountNotCompounded -= borrowAmountToCompound;
         
      }
 
