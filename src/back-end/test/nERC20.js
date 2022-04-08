@@ -32,11 +32,11 @@ describe("nERC20 contract", function () {
     uniSwapSingleSwap = await UniSwapSingleSwap.new(UniSwapV3RouterAddress)
   })
 
-  it("Should deploy with the name", async function () {
+  it("Should deploy with the name NFTY DAI", async function () {
     assert.equal(await nERC20Contract.name(), 'NFTY DAI')
   })
 
-  it("Should deploy with the symbol", async function () {
+  it("Should deploy with the symbol NDAI", async function () {
     assert.equal(await nERC20Contract.symbol(), 'NDAI')
   })
 
