@@ -19,6 +19,8 @@ describe( "nERC20 contract", function () {
   let nERC20Contract
   let unclaimedTokensDelta
   let blocksIncremented = 0
+  let borrowInterestDelta
+  let blocksIncrementedBorrowCheck = 0
   before(async function () {
     accounts = await web3.eth.getAccounts()
     //Checks to see if the first account has ETH
@@ -149,12 +151,44 @@ describe( "nERC20 contract", function () {
     assert.equal(DAICAccountBalAfter-DAICAccountBalBefore,borrowAmount)
 
     let borrowInterestBefore = await nERC20Contract.viewBorrowAccruedTokensAmount({from:accounts[2]})
-    console.log(borrowInterestBefore.toString())
+    assert.equal(borrowInterestBefore,0)
     await nERC20Contract.accrueInterest()
-    let borrowInterest = await nERC20Contract.viewBorrowAccruedTokensAmount({from:accounts[2]})
-    console.log('Currnet borrow interest: ' + borrowInterest.toString())
-    let totalBorrowAmount = await nERC20Contract.totalAmountBorrowed()
+    borrowInterestDelta = await nERC20Contract.viewBorrowAccruedTokensAmount({from:accounts[2]})
+    blocksIncrementedBorrowCheck++
+    assert.approximately(borrowInterestDelta.toNumber(),BigNumber(45662100456).multipliedBy(blocksIncrementedBorrowCheck).toNumber(),5000)
     //console.log(totalBorrowAmount.toString())
+  })
+
+  it("Should transfer WMATIC in exchange for DAI for account 3", async function (){
+
+    let wethAmountToTransfer = 30
+    //Send ETH to WETH contract in return for WETH
+    await wrapToken(wethAmountToTransfer, accounts[3], WETHContract)
+    blocksIncrementedBorrowCheck++
+    //Sends WETH to the deployed contract and
+    //checks the results.
+
+    //await sendWrapEth(wethAmountToTransfer,uniSwapSingleSwap.address, accounts[0])
+    //let contractWethBal = await WETHContract.methods.balanceOf(uniSwapSingleSwap.address).call()
+    //assert.equal(web3.utils.fromWei(contractWethBal,'ether'),wethAmountToTransfer)
+
+    await WETHContract.methods.approve(uniSwapSingleSwap.address, web3.utils.toWei(wethAmountToTransfer.toString(),'ether')).send({from: accounts[3]})
+    blocksIncrementedBorrowCheck++
+
+    //The link at the top of this file describes how to override 
+    //the from value when dealing with transactions using truffle contracts.
+    //I am sending the wethAmountToTransfer to the contract to be swapped on
+    //UniSwap V3 Pool for WBTC. The WBTC is then transferred back to the account
+    //that sent the request.
+    await uniSwapSingleSwap.swapExactInputSingle(web3.utils.toWei(wethAmountToTransfer.toString(),'ether'),0,WETH,DAI,500, {from: accounts[3]})
+    blocksIncrementedBorrowCheck++
+    let DAICBal = await DAIcontract.methods.balanceOf(accounts[3]).call()
+    assert.notEqual(DAICBal/10**8, 0)
+  })
+
+  it("Should correctly identify borrow amount.", async function (){
+    let borrowInterest = await nERC20Contract.viewBorrowAccruedTokensAmount({from:accounts[2]})
+    assert.approximately(borrowInterest.toNumber(),BigNumber(45662100456).multipliedBy(blocksIncrementedBorrowCheck).toNumber(),5000)
   })
 
 })
