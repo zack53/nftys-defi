@@ -40,8 +40,7 @@ import "hardhat/console.sol";
     demand curve.
  */
 
-contract NERC20 is ERC20, InterestModel{
-
+contract NERC20 is ERC20, InterestModel {
     // Variables needed to store contract state
     uint8 immutable _decimals;
     IERC20 immutable erc20Token;
@@ -49,7 +48,12 @@ contract NERC20 is ERC20, InterestModel{
     /**
         Constructor for nERC20 token, passes values to ERC20 parent
      */
-    constructor(string memory name_, string memory symbol_, uint8 decimals_, IERC20 tokenAddress_) ERC20(name_, symbol_){
+    constructor(
+        string memory name_,
+        string memory symbol_,
+        uint8 decimals_,
+        IERC20 tokenAddress_
+    ) ERC20(name_, symbol_) {
         _decimals = decimals_;
         erc20Token = tokenAddress_;
         currentBlockNumber = block.number;
@@ -69,9 +73,17 @@ contract NERC20 is ERC20, InterestModel{
     function supplyTokens(uint256 amount) external {
         accrueInterest();
         updateAccountInterestMapping();
-        require(erc20Token.balanceOf(msg.sender) >= amount, 'You do not have enough ERC20 token to make this transaction.');
-        SafeERC20.safeTransferFrom(erc20Token, msg.sender, address(this), amount);
-        _mint(msg.sender,amount);
+        require(
+            erc20Token.balanceOf(msg.sender) >= amount,
+            "You do not have enough ERC20 token to make this transaction."
+        );
+        SafeERC20.safeTransferFrom(
+            erc20Token,
+            msg.sender,
+            address(this),
+            amount
+        );
+        _mint(msg.sender, amount);
     }
 
     /**
@@ -81,73 +93,116 @@ contract NERC20 is ERC20, InterestModel{
     function withdrawTokens(uint256 amount) external {
         accrueInterest();
         updateAccountInterestMapping();
-        require(balanceOf(msg.sender) > amount, 'You do not have enough collateral tokens to withdraw this amount.');
+        require(
+            balanceOf(msg.sender) > amount,
+            "You do not have enough collateral tokens to withdraw this amount."
+        );
 
-        SafeERC20.safeTransfer(erc20Token,msg.sender,amount);
+        SafeERC20.safeTransfer(erc20Token, msg.sender, amount);
         _burn(msg.sender, amount);
     }
-     
-     /**
+
+    /**
         Claims token for user account
       */
     function claimAccruedTokens() public {
         accrueInterest();
-        AccountInterest memory accountInterestMapping = AccountInterestMapping[msg.sender];
+        AccountInterest memory accountInterestMapping = AccountInterestMapping[
+            msg.sender
+        ];
         // Subtract from unclaimed pool
-        subTotalUnclaimedTokens(accountInterestMapping.unclaimedInterestTokenAmount);
+        subTotalUnclaimedTokens(
+            accountInterestMapping.unclaimedInterestTokenAmount
+        );
         // Send user unclaimed tokens
-        _mint(msg.sender,accountInterestMapping.unclaimedInterestTokenAmount);
-        AccountInterestMapping[msg.sender] = AccountInterest(currentSumOfInterest, currentBlockNumber, 0);
+        _mint(msg.sender, accountInterestMapping.unclaimedInterestTokenAmount);
+        AccountInterestMapping[msg.sender] = AccountInterest(
+            currentSumOfInterest,
+            currentBlockNumber,
+            0
+        );
     }
 
     /**
         Borrows tokens
         TODO: implement the nftCollateral transfer
      */
-     function borrowTokens(uint256 amount, uint256 nftCollateral) external {
-         accrueInterest();
-         require(erc20Token.balanceOf(address(this)) >= amount, 'We do not have enough funds to fund this loan.');
-         updateBorrowInterestMapping(amount);
-         borrowAmount += amount;
-         SafeERC20.safeTransfer(erc20Token,msg.sender,amount);
-     }
+    function borrowTokens(uint256 amount, uint256 nftCollateral) external {
+        accrueInterest();
+        require(
+            erc20Token.balanceOf(address(this)) >= amount,
+            "We do not have enough funds to fund this loan."
+        );
+        updateBorrowInterestMapping(amount);
+        borrowAmount += amount;
+        SafeERC20.safeTransfer(erc20Token, msg.sender, amount);
+    }
 
-     /**
+    /**
         Repay full amount of borrowed tokens
       */
-      function repayFullBorrowAmount() public {
+    function repayFullBorrowAmount() public {
         accrueInterest();
         updateBorrowInterestMapping(0);
 
-        BorrowInterest memory borrowInterestMapping = BorrowInterestMapping[msg.sender];
-        uint256 fullAmountToRepay = borrowInterestMapping.borrowAmountNotCompounded + borrowInterestMapping.borrowAmount;
+        BorrowInterest memory borrowInterestMapping = BorrowInterestMapping[
+            msg.sender
+        ];
+        uint256 fullAmountToRepay = borrowInterestMapping
+            .borrowAmountNotCompounded + borrowInterestMapping.borrowAmount;
 
-        require(erc20Token.balanceOf(msg.sender) >= fullAmountToRepay);
+        require(
+            erc20Token.balanceOf(msg.sender) >= fullAmountToRepay,
+            "You do not have enough to repay all of your debt"
+        );
 
-        SafeERC20.safeTransferFrom(erc20Token, msg.sender, address(this), fullAmountToRepay);
+        SafeERC20.safeTransferFrom(
+            erc20Token,
+            msg.sender,
+            address(this),
+            fullAmountToRepay
+        );
 
         borrowAmount -= fullAmountToRepay;
         delete BorrowInterestMapping[msg.sender];
-      }
+    }
 
-      /**
+    /**
         Repay a portion of the borrowed tokens
        */
-      function repayBorrowAmount(uint256 amount) external {
+    function repayBorrowAmount(uint256 amount) external {
         accrueInterest();
         updateBorrowInterestMapping(0);
 
-        require(erc20Token.balanceOf(msg.sender) >= amount, 'You do not have enough ERC20 token to pay this amount.');
-        
-        BorrowInterest memory borrowInterestMapping = BorrowInterestMapping[msg.sender];
+        require(
+            erc20Token.balanceOf(msg.sender) >= amount,
+            "You do not have enough ERC20 token to pay this amount."
+        );
 
-        if(borrowInterestMapping.borrowAmount + borrowInterestMapping.borrowAmountNotCompounded < amount){
+        BorrowInterest memory borrowInterestMapping = BorrowInterestMapping[
+            msg.sender
+        ];
+
+        if (
+            borrowInterestMapping.borrowAmount +
+                borrowInterestMapping.borrowAmountNotCompounded <
+            amount
+        ) {
             repayFullBorrowAmount();
-        }else{
-            SafeERC20.safeTransferFrom(erc20Token, msg.sender, address(this), amount);
-            BorrowInterestMapping[msg.sender] = BorrowInterest(currentSumOfBorrowInterest, currentBlockNumber, 0,borrowInterestMapping.borrowAmount-amount);
+        } else {
+            SafeERC20.safeTransferFrom(
+                erc20Token,
+                msg.sender,
+                address(this),
+                amount
+            );
+            BorrowInterestMapping[msg.sender] = BorrowInterest(
+                currentSumOfBorrowInterest,
+                currentBlockNumber,
+                0,
+                borrowInterestMapping.borrowAmount - amount
+            );
             borrowAmount -= amount;
         }
-
     }
 }

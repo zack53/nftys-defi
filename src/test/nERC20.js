@@ -2,7 +2,7 @@
 //The link above is a good resource for everything related to truffle contracts.
 
 const { web3, assert } = require("hardhat")
-const { ERC20ABI, DAI, WETH, UniSwapV3RouterAddress} = require('../EVMAddresses/evmAddresses')
+const { ERC20ABI, DAI, WETH, UniSwapV3RouterAddress } = require('../EVMAddresses/evmAddresses')
 const { wrapToken } = require('../util/TokenUtil')
 const { BigNumber } = require('bignumber.js')
 //Creates a truffe contract from compiled artifacts.
@@ -13,7 +13,7 @@ const DAIcontract = new web3.eth.Contract(ERC20ABI, DAI)
 const WETHContract = new web3.eth.Contract(ERC20ABI, WETH)
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe( "nERC20 contract", function () {
+describe("nERC20 contract", function () {
   let accounts
   let decimals = 18
   let nERC20Contract
@@ -27,28 +27,28 @@ describe( "nERC20 contract", function () {
     let balance = await web3.eth.getBalance(accounts[0])
     assert.notEqual(balance, 0)
     //deploy contract
-    nERC20Contract = await nERC20.new('NFTY DAI','NDAI',decimals,DAI)
+    nERC20Contract = await nERC20.new('NFTY DAI', 'NDAI', decimals, DAI)
     //deploy UniSwap contract
     uniSwapSingleSwap = await UniSwapSingleSwap.new(UniSwapV3RouterAddress)
   })
 
   it("Should deploy with the name", async function () {
-    assert.equal(await nERC20Contract.name(),'NFTY DAI')
+    assert.equal(await nERC20Contract.name(), 'NFTY DAI')
   })
 
   it("Should deploy with the symbol", async function () {
-    assert.equal(await nERC20Contract.symbol(),'NDAI')
+    assert.equal(await nERC20Contract.symbol(), 'NDAI')
   })
 
   it("Should have 0 totalSupply", async function () {
-    assert.equal(await nERC20Contract.totalSupply(),0)
+    assert.equal(await nERC20Contract.totalSupply(), 0)
   })
 
   it(`Should have ${decimals} for decimals`, async function () {
-    assert.equal(await nERC20Contract.decimals(),decimals)
+    assert.equal(await nERC20Contract.decimals(), decimals)
   })
 
-  it("Should transfer WMATIC in exchange for DAI", async function (){
+  it("Should transfer WMATIC in exchange for DAI", async function () {
 
     let wethAmountToTransfer = 30
     //Send ETH to WETH contract in return for WETH
@@ -60,35 +60,35 @@ describe( "nERC20 contract", function () {
     //let contractWethBal = await WETHContract.methods.balanceOf(uniSwapSingleSwap.address).call()
     //assert.equal(web3.utils.fromWei(contractWethBal,'ether'),wethAmountToTransfer)
 
-    await WETHContract.methods.approve(uniSwapSingleSwap.address, web3.utils.toWei(wethAmountToTransfer.toString(),'ether')).send({from: accounts[0]})
+    await WETHContract.methods.approve(uniSwapSingleSwap.address, web3.utils.toWei(wethAmountToTransfer.toString(), 'ether')).send({ from: accounts[0] })
 
     //The link at the top of this file describes how to override 
     //the from value when dealing with transactions using truffle contracts.
     //I am sending the wethAmountToTransfer to the contract to be swapped on
     //UniSwap V3 Pool for WBTC. The WBTC is then transferred back to the account
     //that sent the request.
-    await uniSwapSingleSwap.swapExactInputSingle(web3.utils.toWei(wethAmountToTransfer.toString(),'ether'),0,WETH,DAI,500, {from: accounts[0]})
+    await uniSwapSingleSwap.swapExactInputSingle(web3.utils.toWei(wethAmountToTransfer.toString(), 'ether'), 0, WETH, DAI, 500, { from: accounts[0] })
     let DAICBal = await DAIcontract.methods.balanceOf(accounts[0]).call()
-    assert.notEqual(DAICBal/10**8, 0)
+    assert.notEqual(DAICBal / 10 ** 8, 0)
   })
 
-  it("Should transfer some DAI to accounts[1]", async() =>{
+  it("Should transfer some DAI to accounts[1]", async () => {
     let tradeAmount = BigNumber(10).shiftedBy(decimals)
-    await DAIcontract.methods.transfer(accounts[1], tradeAmount.toString()).send({from:accounts[0]})
+    await DAIcontract.methods.transfer(accounts[1], tradeAmount.toString()).send({ from: accounts[0] })
     let daiBal = await DAIcontract.methods.balanceOf(accounts[1]).call()
     assert.equal(tradeAmount.toString(), daiBal.toString())
   })
 
   it("Should have totalSupply of amount minted for accounts[0]", async function () {
     let mintAmount = BigNumber(10).shiftedBy(decimals).toString()
-    assert.equal(await  nERC20Contract.totalSupply(),0)
-    await DAIcontract.methods.approve(nERC20Contract.address, mintAmount).send({from:accounts[0]})
+    assert.equal(await nERC20Contract.totalSupply(), 0)
+    await DAIcontract.methods.approve(nERC20Contract.address, mintAmount).send({ from: accounts[0] })
     // Increments one block
     await nERC20Contract.supplyTokens(mintAmount)
     blocksIncremented++
-    assert.equal(await nERC20Contract.totalSupply(),mintAmount)
+    assert.equal(await nERC20Contract.totalSupply(), mintAmount)
     let DAICBal = await DAIcontract.methods.balanceOf(nERC20Contract.address).call()
-    assert.equal(DAICBal,mintAmount)
+    assert.equal(DAICBal, mintAmount)
     // Increments the block by using accrueInterest and gets delta
     // amount that we should be gaining interest by to validate later
     await nERC20Contract.accrueInterest()
@@ -96,15 +96,15 @@ describe( "nERC20 contract", function () {
     unclaimedTokensDelta = await nERC20Contract.viewAccruedTokensAmount()
   })
 
-  it("Should supplyTokens value for accounts[1]", async() =>{
+  it("Should supplyTokens value for accounts[1]", async () => {
     let mintAmount = BigNumber(10).shiftedBy(decimals).toString()
-    await DAIcontract.methods.approve(nERC20Contract.address, mintAmount).send({from:accounts[1]})
+    await DAIcontract.methods.approve(nERC20Contract.address, mintAmount).send({ from: accounts[1] })
     let balanceBefore = await nERC20Contract.balanceOf(accounts[1])
     // Increments one block
-    await nERC20Contract.supplyTokens(mintAmount,{from:accounts[1]})
+    await nERC20Contract.supplyTokens(mintAmount, { from: accounts[1] })
     blocksIncremented++
     let balanceAfter = await nERC20Contract.balanceOf(accounts[1])
-    assert.equal(mintAmount,balanceAfter.toString())
+    assert.equal(mintAmount, balanceAfter.toString())
   })
 
   it("Should view unclaimed tokens", async function () {
@@ -112,7 +112,7 @@ describe( "nERC20 contract", function () {
     await nERC20Contract.accrueInterest()
     blocksIncremented++
     let unclaimedTokensAfter = await nERC20Contract.viewAccruedTokensAmount()
-    assert.approximately(BigNumber(unclaimedTokensDelta).multipliedBy(blocksIncremented).toNumber(),BigNumber(unclaimedTokensAfter).toNumber(),5000)
+    assert.approximately(BigNumber(unclaimedTokensDelta).multipliedBy(blocksIncremented).toNumber(), BigNumber(unclaimedTokensAfter).toNumber(), 5000)
 
   })
 
@@ -120,13 +120,13 @@ describe( "nERC20 contract", function () {
     let depositAmount = BigNumber(1).shiftedBy(decimals)
     let DAICBal = await DAIcontract.methods.balanceOf(nERC20Contract.address).call()
     let DAICAccountBalBefore = await DAIcontract.methods.balanceOf(accounts[0]).call()
-    assert.equal(await  nERC20Contract.totalSupply(),DAICBal)
-    
+    assert.equal(await nERC20Contract.totalSupply(), DAICBal)
+
     await nERC20Contract.withdrawTokens(depositAmount.toString())
-    assert.equal((await nERC20Contract.totalSupply()).toString(),(BigNumber(DAICBal).minus(depositAmount)).toString())
-    
+    assert.equal((await nERC20Contract.totalSupply()).toString(), (BigNumber(DAICBal).minus(depositAmount)).toString())
+
     let DAICAccountBal = await DAIcontract.methods.balanceOf(accounts[0]).call()
-    assert.equal(depositAmount,(BigNumber(DAICAccountBal).minus(BigNumber(DAICAccountBalBefore))).toString())
+    assert.equal(depositAmount, (BigNumber(DAICAccountBal).minus(BigNumber(DAICAccountBalBefore))).toString())
   })
 
   it("Should claim earned tokens for account", async function () {
@@ -137,33 +137,64 @@ describe( "nERC20 contract", function () {
     await nERC20Contract.claimAccruedTokens()
     let tokenAmountAfter = await nERC20Contract.balanceOf(accounts[0])
     let totalSupplyAfter = await nERC20Contract.totalSupply()
-    let deltaTokenAccountAmount = tokenAmountAfter-tokenAmountBefore
-    let deltaTotalSupply = totalSupplyAfter-totalSupplyBefore
-    assert.equal(deltaTokenAccountAmount,deltaTotalSupply)
+    let deltaTokenAccountAmount = tokenAmountAfter - tokenAmountBefore
+    let deltaTotalSupply = totalSupplyAfter - totalSupplyBefore
+    assert.equal(deltaTokenAccountAmount, deltaTotalSupply)
 
   })
 
-  it("Should borrow some DAI",async() =>{
+  it("Should borrow some DAI", async () => {
     let borrowAmount = BigNumber(1).shiftedBy(decimals)
     let DAICAccountBalBefore = await DAIcontract.methods.balanceOf(accounts[2]).call()
-    await nERC20Contract.borrowTokens(borrowAmount.toString(),2,{from:accounts[2]})
+    await nERC20Contract.borrowTokens(borrowAmount.toString(), 2, { from: accounts[2] })
     let DAICAccountBalAfter = await DAIcontract.methods.balanceOf(accounts[2]).call()
-    assert.equal(DAICAccountBalAfter-DAICAccountBalBefore,borrowAmount)
+    assert.equal(DAICAccountBalAfter - DAICAccountBalBefore, borrowAmount)
 
-    let borrowInterestBefore = await nERC20Contract.viewBorrowAccruedTokensAmount({from:accounts[2]})
-    assert.equal(borrowInterestBefore,0)
+    let borrowInterestBefore = await nERC20Contract.viewBorrowAccruedTokensAmount({ from: accounts[2] })
+    assert.equal(borrowInterestBefore, 0)
     await nERC20Contract.accrueInterest()
-    borrowInterestDelta = await nERC20Contract.viewBorrowAccruedTokensAmount({from:accounts[2]})
+    borrowInterestDelta = await nERC20Contract.viewBorrowAccruedTokensAmount({ from: accounts[2] })
     blocksIncrementedBorrowCheck++
-    assert.approximately(borrowInterestDelta.toNumber(),BigNumber(45662100456).multipliedBy(blocksIncrementedBorrowCheck).toNumber(),5000)
-    //console.log(totalBorrowAmount.toString())
+    assert.approximately(borrowInterestDelta.toNumber(), BigNumber(45662100456).multipliedBy(blocksIncrementedBorrowCheck).toNumber(), 5000)
   })
 
-  it("Should transfer WMATIC in exchange for DAI for account 3", async function (){
+  it("Should correctly identify borrow interest.", async function () {
+    let borrowInterest = await nERC20Contract.viewBorrowAccruedTokensAmount({ from: accounts[2] })
+    assert.approximately(borrowInterest.toNumber(), BigNumber(45662100456).multipliedBy(blocksIncrementedBorrowCheck).toNumber(), 5000)
+  })
+
+  it("Should repay portion of debt.", async function () {
+    let daiBal = await DAIcontract.methods.balanceOf(accounts[2]).call()
+    let repayAmount = BigNumber(25).shiftedBy(decimals - 2)
+    await DAIcontract.methods.approve(nERC20Contract.address, repayAmount).send({ from: accounts[2] })
+    // Checks to ensure borrow amount is equal to dai balance
+    let borrowAmount = await nERC20Contract.getAmountBorrowed({ from: accounts[2] })
+    assert.equal(borrowAmount.toString(), daiBal.toString())
+    await nERC20Contract.repayBorrowAmount(repayAmount.toString(), { from: accounts[2] })
+    // Checks to ensure borrow amount after is lower than borrow amount before
+    let borrowAmountAfter = await nERC20Contract.getAmountBorrowed({ from: accounts[2] })
+    assert.isBelow(BigNumber(borrowAmountAfter).shiftedBy(-1 * decimals).toNumber(), BigNumber(borrowAmount).shiftedBy(-1 * decimals).toNumber())
+  })
+
+  it("Should fail to repay all debt.", async function () {
+    let repayAmount = await nERC20Contract.getRepayAmount({ from: accounts[2] })
+    let daiBal = await DAIcontract.methods.balanceOf(accounts[2]).call()
+    // Should hit the require statement in the contract and fail
+    try {
+      await DAIcontract.methods.approve(nERC20Contract.address, repayAmount).send({ from: accounts[2] })
+      await nERC20Contract.repayFullBorrowAmount({ from: accounts[2] })
+    } catch {
+      // Checks to ensure no DIA was withdrawn due to failure
+      let daiBalAfter = await DAIcontract.methods.balanceOf(accounts[2]).call()
+      assert.equal(daiBalAfter.toString(), daiBal.toString())
+    }
+  })
+
+  it("Should transfer WMATIC in exchange for DAI for account 2", async function () {
 
     let wethAmountToTransfer = 30
     //Send ETH to WETH contract in return for WETH
-    await wrapToken(wethAmountToTransfer, accounts[3], WETHContract)
+    await wrapToken(wethAmountToTransfer, accounts[2], WETHContract)
     blocksIncrementedBorrowCheck++
     //Sends WETH to the deployed contract and
     //checks the results.
@@ -172,7 +203,7 @@ describe( "nERC20 contract", function () {
     //let contractWethBal = await WETHContract.methods.balanceOf(uniSwapSingleSwap.address).call()
     //assert.equal(web3.utils.fromWei(contractWethBal,'ether'),wethAmountToTransfer)
 
-    await WETHContract.methods.approve(uniSwapSingleSwap.address, web3.utils.toWei(wethAmountToTransfer.toString(),'ether')).send({from: accounts[3]})
+    await WETHContract.methods.approve(uniSwapSingleSwap.address, web3.utils.toWei(wethAmountToTransfer.toString(), 'ether')).send({ from: accounts[2] })
     blocksIncrementedBorrowCheck++
 
     //The link at the top of this file describes how to override 
@@ -180,15 +211,25 @@ describe( "nERC20 contract", function () {
     //I am sending the wethAmountToTransfer to the contract to be swapped on
     //UniSwap V3 Pool for WBTC. The WBTC is then transferred back to the account
     //that sent the request.
-    await uniSwapSingleSwap.swapExactInputSingle(web3.utils.toWei(wethAmountToTransfer.toString(),'ether'),0,WETH,DAI,500, {from: accounts[3]})
+    await uniSwapSingleSwap.swapExactInputSingle(web3.utils.toWei(wethAmountToTransfer.toString(), 'ether'), 0, WETH, DAI, 500, { from: accounts[2] })
     blocksIncrementedBorrowCheck++
-    let DAICBal = await DAIcontract.methods.balanceOf(accounts[3]).call()
-    assert.notEqual(DAICBal/10**8, 0)
+    let DAICBal = await DAIcontract.methods.balanceOf(accounts[2]).call()
+    assert.notEqual(DAICBal / 10 ** 8, 0)
   })
 
-  it("Should correctly identify borrow amount.", async function (){
-    let borrowInterest = await nERC20Contract.viewBorrowAccruedTokensAmount({from:accounts[2]})
-    assert.approximately(borrowInterest.toNumber(),BigNumber(45662100456).multipliedBy(blocksIncrementedBorrowCheck).toNumber(),5000)
+  it("Should repay all debt.", async function () {
+    // Gets total repay amount to set allowance and adds a .001 extra allowance
+    // to be withdraw
+    let repayAmount = await nERC20Contract.getRepayAmount({ from: accounts[2] })
+    repayAmount = BigNumber(repayAmount).plus(BigNumber(1).shiftedBy(15))
+
+    // Approves transfer and pays full borrow amount
+    await DAIcontract.methods.approve(nERC20Contract.address, repayAmount).send({ from: accounts[2] })
+    await nERC20Contract.repayFullBorrowAmount({ from: accounts[2] })
+
+    // Ensures repay amount is now 0 after repaying debt
+    repayAmount = await nERC20Contract.getRepayAmount({ from: accounts[2] })
+    assert.equal(repayAmount.toNumber(), 0)
   })
 
 })
