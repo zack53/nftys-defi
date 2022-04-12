@@ -10,25 +10,45 @@ import "hardhat/console.sol";
 contract CreateNFT is ERC721 {
     string[] public CryptoNFTs;
     uint256 private id;
+    string private baseURI;
 
-    constructor(string memory name_, string memory symbol_)
-        ERC721(name_, symbol_)
-    {}
+    /**
+        Cont
+    */
+    constructor(
+        string memory name_,
+        string memory symbol_,
+        string memory _baseURI
+    ) ERC721(name_, symbol_) {
+        baseURI = _baseURI;
+    }
 
+    /**
+        Mints NFT with a specific name
+    */
     function mint(string memory name) external {
         CryptoNFTs.push(name);
         _safeMint(msg.sender, id, "");
         id += 1;
     }
 
+    /**
+        Returns the amount of NFTs that have been create on this contract
+    */
     function CryptNFTsAmountCreated() external view returns (uint256 amount) {
         amount = id;
     }
 
+    /**
+        Function to overide base URI
+    */
     function _baseURI() internal view virtual override returns (string memory) {
-        return "test";
+        return baseURI;
     }
 
+    /**
+        Function to view base URI
+    */
     function getBaseURI() external view returns (string memory baseURI) {
         baseURI = _baseURI();
     }

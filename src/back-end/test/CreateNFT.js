@@ -11,14 +11,14 @@ const CreateNFT = artifacts.require("CreateNFT")
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("CreateNFT contract", function () {
     let accounts
-
+    let baseURI = 'test'
     before(async function () {
         accounts = await web3.eth.getAccounts()
         //Checks to see if the first account has ETH
         let balance = await web3.eth.getBalance(accounts[0])
         assert.notEqual(balance, 0)
         //deploy contract
-        createNFTContract = await CreateNFT.new('NFTY Loans Platform', 'NFTY')
+        createNFTContract = await CreateNFT.new('NFTY Loans Platform', 'NFTY', baseURI)
     })
 
     it("Should deploy with the name NFTY Loans Platform", async function () {
@@ -30,6 +30,6 @@ describe("CreateNFT contract", function () {
     })
 
     it("Should have base URI", async function () {
-        assert.equal(await createNFTContract.getBaseURI(), 'test')
+        assert.equal(await createNFTContract.getBaseURI(), baseURI)
     })
 })
