@@ -105,7 +105,7 @@ contract NERC20 is ERC20, InterestModel {
     /**
         Claims token for user account
       */
-    function claimAccruedTokens() public {
+    function claimAccruedTokens() external {
         accrueInterest();
         AccountInterest memory accountInterestMapping = AccountInterestMapping[
             msg.sender
