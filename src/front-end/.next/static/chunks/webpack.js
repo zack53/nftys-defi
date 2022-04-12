@@ -136,7 +136,15 @@
 /******/ 	
 /******/ 	/* webpack/runtime/getFullHash */
 /******/ 	!function() {
+<<<<<<< HEAD
 /******/ 		__webpack_require__.h = function() { return "6bda46db1c38db82"; }
+=======
+<<<<<<< HEAD
+/******/ 		__webpack_require__.h = function() { return "fae5e78f017dc564"; }
+=======
+/******/ 		__webpack_require__.h = function() { return "4d332ba19d428a95"; }
+>>>>>>> parent of bac12f4 (removed folders)
+>>>>>>> main
 /******/ 	}();
 /******/ 	
 /******/ 	/* webpack/runtime/global */
