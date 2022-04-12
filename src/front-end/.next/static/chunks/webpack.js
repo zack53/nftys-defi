@@ -136,21 +136,7 @@
 /******/ 	
 /******/ 	/* webpack/runtime/getFullHash */
 /******/ 	!function() {
-<<<<<<< HEAD
-<<<<<<< HEAD
-/******/ 		__webpack_require__.h = function() { return "6bda46db1c38db82"; }
-=======
-<<<<<<< HEAD
-=======
->>>>>>> main
-/******/ 		__webpack_require__.h = function() { return "fae5e78f017dc564"; }
-=======
-/******/ 		__webpack_require__.h = function() { return "4d332ba19d428a95"; }
->>>>>>> parent of bac12f4 (removed folders)
-<<<<<<< HEAD
->>>>>>> main
-=======
->>>>>>> main
+/******/ 		__webpack_require__.h = function() { return "d96802cc7a741b87"; }
 /******/ 	}();
 /******/ 	
 /******/ 	/* webpack/runtime/global */
