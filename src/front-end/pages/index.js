@@ -20,7 +20,6 @@ export default function Home() {
   const [newSupplyAmount, setSupplyAmount] = useState()
   const [tradeAmount, setTradeAmount] = useState()
 
-
   useEffect(() => {
     setTargetOffset(window.innerHeight / 2)
     if (typeof window.ethereum !== "undefined") {
