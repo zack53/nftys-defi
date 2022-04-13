@@ -129,6 +129,7 @@ contract NERC20 is ERC20, InterestModel {
      */
     function borrowTokens(uint256 amount, uint256 nftCollateral) external {
         accrueInterest();
+        // require(amount >= nftCollateral / 4, "NFT Amount is not high enough");
         require(
             erc20Token.balanceOf(address(this)) >= amount,
             "We do not have enough funds to fund this loan."

@@ -32,4 +32,22 @@ describe("CreateNFT contract", function () {
     it("Should have base URI", async function () {
         assert.equal(await createNFTContract.getBaseURI(), baseURI)
     })
+
+    it("Should mint NFT", async function () {
+        await createNFTContract.mint('Zack')
+        let event = await createNFTContract.getPastEvents('MintNFT', { fromBlock: BigNumber(await web3.eth.getBlockNumber()).minus(1).toString(), toBlock: 'latest' })
+        let id = 0
+        let amountCreated = await createNFTContract.CryptNFTsAmountCreated()
+        for (let i = 0; i < event.length; i++) {
+            if (event[i].returnValues.minter == accounts[0]) {
+                id = event[i].returnValues.id
+                break
+            }
+        }
+        assert.equal(id.toString(), amountCreated.toString())
+    })
+
+    // it("Should mint NFT", async function () {
+    //     assert.equal(await createNFTContract.mint('Zack'), baseURI)
+    // })
 })

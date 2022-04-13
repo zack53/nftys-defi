@@ -230,6 +230,7 @@ describe("nERC20 contract", function () {
     // Ensures repay amount is now 0 after repaying debt
     repayAmount = await nERC20Contract.getRepayAmount({ from: accounts[2] })
     assert.equal(repayAmount.toNumber(), 0)
+    assert.equal((await nERC20Contract.totalAmountBorrowed()).toString(), '0')
   })
 
 })
