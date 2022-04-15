@@ -2,12 +2,14 @@
 //The link above is a good resource for everything related to truffle contracts.
 
 //Creates a truffe contract from compiled artifacts.
+const { network, config, web3 } = require('hardhat')
 const UniSwapSingleSwap = artifacts.require("UniSwapSingleSwap")
-const { WETH, WBTC, ERC20ABI, UniSwapV3RouterAddress} = require('../EVMAddresses/evmAddresses')
+const { WTOKEN, DAI } = config.EVMAddresses[network.name]
+const { ERC20ABI, UniSwapV3RouterAddress } = config.EVMAddresses
 const { wrapToken } = require('../util/TokenUtil')
 
-const WETHContract = new web3.eth.Contract(ERC20ABI, WETH)
-const WBTCContract = new web3.eth.Contract(ERC20ABI, WBTC)
+const WTOKENContract = new web3.eth.Contract(ERC20ABI, WTOKEN)
+const DAIContract = new web3.eth.Contract(ERC20ABI, DAI)
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("UniSwapSingleSwap contract", function () {
@@ -26,26 +28,23 @@ describe("UniSwapSingleSwap contract", function () {
     assert.equal(await uniSwapSingleSwap.swapRouter(), UniSwapV3RouterAddress)
   })
 
-  it('Should swap token values WETH for WBTC', async function () {
-    let wethAmountToTransfer = 15
-    //Send ETH to WETH contract in return for WETH
-    await wrapToken(wethAmountToTransfer, accounts[0], WETHContract)
-    //Sends WETH to the deployed contract and
-    //checks the results.
+  it('Should swap token values WTOKEN for DAI', async function () {
+    let WTokenAmountToTransfer = 15
+    //Send ETH to WTOKEN contract in return for WTOKEN
+    await wrapToken(WTokenAmountToTransfer, accounts[0], WTOKENContract)
 
-    //await sendWrapEth(wethAmountToTransfer,uniSwapSingleSwap.address, accounts[0])
-    //let contractWethBal = await WETHContract.methods.balanceOf(uniSwapSingleSwap.address).call()
-    //assert.equal(web3.utils.fromWei(contractWethBal,'ether'),wethAmountToTransfer)
+    let wTokenAmount = await WTOKENContract.methods.balanceOf(accounts[0]).call()
+    console.log(wTokenAmount.toString())
 
-    await WETHContract.methods.approve(uniSwapSingleSwap.address, web3.utils.toWei(wethAmountToTransfer.toString(),'ether')).send({from: accounts[0]})
+    await WTOKENContract.methods.approve(uniSwapSingleSwap.address, web3.utils.toWei(WTokenAmountToTransfer.toString(), 'ether')).send({ from: accounts[0] })
 
     //The link at the top of this file describes how to override 
     //the from value when dealing with transactions using truffle contracts.
-    //I am sending the wethAmountToTransfer to the contract to be swapped on
-    //UniSwap V3 Pool for WBTC. The WBTC is then transferred back to the account
+    //I am sending the WTokenAmountToTransfer to the contract to be swapped on
+    //UniSwap V3 Pool for DAI. The DAI is then transferred back to the account
     //that sent the request.
-    await uniSwapSingleSwap.swapExactInputSingle(web3.utils.toWei(wethAmountToTransfer.toString(),'ether'),0,WETH,WBTC,500, {from: accounts[0]})
-    let WBTCBal = await WBTCContract.methods.balanceOf(accounts[0]).call()
-    assert.notEqual(WBTCBal/10**8, 0)
+    await uniSwapSingleSwap.swapExactInputSingle(web3.utils.toWei(WTokenAmountToTransfer.toString(), 'ether'), 0, WTOKEN, DAI, 3000, { from: accounts[0] })
+    // let DAIBal = await DAIContract.methods.balanceOf(accounts[0]).call()
+    // assert.notEqual(DAIBal / 10 ** 8, 0)
   })
 })

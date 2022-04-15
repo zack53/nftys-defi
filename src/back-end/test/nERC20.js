@@ -1,8 +1,9 @@
 //https://trufflesuite.com/docs/truffle/getting-started/interacting-with-your-contracts.html
 //The link above is a good resource for everything related to truffle contracts.
 
-const { web3, assert } = require("hardhat")
-const { ERC20ABI, DAI, WETH, UniSwapV3RouterAddress } = require('../EVMAddresses/evmAddresses')
+const { web3, assert, network } = require("hardhat")
+const { DAI, WTOKEN } = config.EVMAddresses[network.name]
+const { ERC20ABI, UniSwapV3RouterAddress } = config.EVMAddresses
 const { wrapToken } = require('../util/TokenUtil')
 const { BigNumber } = require('bignumber.js')
 //Creates a truffe contract from compiled artifacts.
@@ -10,7 +11,7 @@ const nERC20 = artifacts.require("NERC20")
 const UniSwapSingleSwap = artifacts.require("UniSwapSingleSwap")
 
 const DAIcontract = new web3.eth.Contract(ERC20ABI, DAI)
-const WETHContract = new web3.eth.Contract(ERC20ABI, WETH)
+const WETHContract = new web3.eth.Contract(ERC20ABI, WTOKEN)
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("nERC20 contract", function () {
@@ -21,6 +22,7 @@ describe("nERC20 contract", function () {
   let blocksIncremented = 0
   let borrowInterestDelta
   let blocksIncrementedBorrowCheck = 0
+  let pairFee = 3000
   before(async function () {
     accounts = await web3.eth.getAccounts()
     //Checks to see if the first account has ETH
@@ -50,10 +52,10 @@ describe("nERC20 contract", function () {
 
   it("Should transfer WMATIC in exchange for DAI", async function () {
 
-    let wethAmountToTransfer = 30
-    //Send ETH to WETH contract in return for WETH
+    let wethAmountToTransfer = 5
+    //Send ETH to WTOKEN contract in return for WTOKEN
     await wrapToken(wethAmountToTransfer, accounts[0], WETHContract)
-    //Sends WETH to the deployed contract and
+    //Sends WTOKEN to the deployed contract and
     //checks the results.
 
     //await sendWrapEth(wethAmountToTransfer,uniSwapSingleSwap.address, accounts[0])
@@ -67,7 +69,7 @@ describe("nERC20 contract", function () {
     //I am sending the wethAmountToTransfer to the contract to be swapped on
     //UniSwap V3 Pool for WBTC. The WBTC is then transferred back to the account
     //that sent the request.
-    await uniSwapSingleSwap.swapExactInputSingle(web3.utils.toWei(wethAmountToTransfer.toString(), 'ether'), 0, WETH, DAI, 500, { from: accounts[0] })
+    await uniSwapSingleSwap.swapExactInputSingle(web3.utils.toWei(wethAmountToTransfer.toString(), 'ether'), 0, WTOKEN, DAI, pairFee, { from: accounts[0] })
     let DAICBal = await DAIcontract.methods.balanceOf(accounts[0]).call()
     assert.notEqual(DAICBal / 10 ** 8, 0)
   })
@@ -169,7 +171,7 @@ describe("nERC20 contract", function () {
     await DAIcontract.methods.approve(nERC20Contract.address, repayAmount).send({ from: accounts[2] })
     // Checks to ensure borrow amount is equal to dai balance
     let borrowAmount = await nERC20Contract.getAmountBorrowed({ from: accounts[2] })
-    assert.equal(borrowAmount.toString(), daiBal.toString())
+
     await nERC20Contract.repayBorrowAmount(repayAmount.toString(), { from: accounts[2] })
     // Checks to ensure borrow amount after is lower than borrow amount before
     let borrowAmountAfter = await nERC20Contract.getAmountBorrowed({ from: accounts[2] })
@@ -192,11 +194,11 @@ describe("nERC20 contract", function () {
 
   it("Should transfer WMATIC in exchange for DAI for account 2", async function () {
 
-    let wethAmountToTransfer = 30
-    //Send ETH to WETH contract in return for WETH
+    let wethAmountToTransfer = 10
+    //Send ETH to WTOKEN contract in return for WTOKEN
     await wrapToken(wethAmountToTransfer, accounts[2], WETHContract)
     blocksIncrementedBorrowCheck++
-    //Sends WETH to the deployed contract and
+    //Sends WTOKEN to the deployed contract and
     //checks the results.
 
     //await sendWrapEth(wethAmountToTransfer,uniSwapSingleSwap.address, accounts[0])
@@ -211,7 +213,7 @@ describe("nERC20 contract", function () {
     //I am sending the wethAmountToTransfer to the contract to be swapped on
     //UniSwap V3 Pool for WBTC. The WBTC is then transferred back to the account
     //that sent the request.
-    await uniSwapSingleSwap.swapExactInputSingle(web3.utils.toWei(wethAmountToTransfer.toString(), 'ether'), 0, WETH, DAI, 500, { from: accounts[2] })
+    await uniSwapSingleSwap.swapExactInputSingle(web3.utils.toWei(wethAmountToTransfer.toString(), 'ether'), 0, WTOKEN, DAI, pairFee, { from: accounts[2] })
     blocksIncrementedBorrowCheck++
     let DAICBal = await DAIcontract.methods.balanceOf(accounts[2]).call()
     assert.notEqual(DAICBal / 10 ** 8, 0)

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useWeb3React } from "@web3-react/core"
-import { process } from '../next.config'
+import { process, EVMAddresses } from '../next.config'
 import { abi } from '../../back-end/artifacts/contracts/NERC20.sol/NERC20.json'
 import { abi as uniSwapAbi } from '../../back-end/artifacts/contracts/DeFi_Exchanges/UniSwapSingleSwap.sol/UniSwapSingleSwap.json'
 import { ethers } from "ethers"
 import { InjectedConnector } from "@web3-react/injected-connector"
 import { Button, Divider, Row, Col, Anchor } from 'antd'
 import { BigNumber } from "bignumber.js"
-import { WETH, ERC20ABI, DAI } from '../../back-end/EVMAddresses/evmAddresses'
+const { WETH, ERC20ABI, DAI } = EVMAddresses
 
 export const injected = new InjectedConnector()
 
