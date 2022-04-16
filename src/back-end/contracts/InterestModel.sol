@@ -4,6 +4,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 
 /**
@@ -37,7 +38,7 @@ import "hardhat/console.sol";
     demand curve.
  */
 
-contract InterestModel {
+contract InterestModel is Ownable {
     // Variables needed to store contract state
     uint8 internal currentInterestRatePerBlock = 5;
     uint8 internal currentBorrowInterestRatePerBlock = 12;
@@ -86,7 +87,7 @@ contract InterestModel {
         Accrue interest function. Calculates whenever account action happens that affects
         the supply of the current token.
     */
-    function accrueInterest() public returns (uint256 accruedInterestAmount) {
+    function accrueInterest() internal returns (uint256 accruedInterestAmount) {
         if (currentState == AccrueInterestState.calculatingInterest) {
             return 0;
         }
@@ -178,7 +179,8 @@ contract InterestModel {
     }
 
     /**
-        Function to get total amount invested
+        Function to get total amount invested for
+        user that calls function
       */
     function getAmountInvested()
         external
@@ -192,17 +194,17 @@ contract InterestModel {
         get unclaimed tokens for user AccountInterest
      */
 
-    function getBorrowAccruedTokensAmount()
+    function getBorrowAccruedTokensAmount(address borrower)
         internal
         view
         returns (uint256 borrowAccruedTokenAmount)
     {
         BorrowInterest memory borrowInterestMapping = BorrowInterestMapping[
-            msg.sender
+            borrower
         ];
         // Get delta information to calculate current account portion
         (uint256 deltaBlockNum, uint256 deltaAvgInterest) = abi.decode(
-            getBorrowInterestDelta(),
+            getBorrowInterestDelta(borrower),
             (uint256, uint256)
         );
         // This is calculating delta from last deposit / withdrawl of account to last accruedInterest
@@ -216,17 +218,25 @@ contract InterestModel {
     /**
         Function to get amount borrowed
       */
-    function getAmountBorrowed() public view returns (uint256 amountBorrowed) {
-        amountBorrowed = BorrowInterestMapping[msg.sender].borrowAmount;
+    function getAmountBorrowed(address borrower)
+        external
+        view
+        returns (uint256 amountBorrowed)
+    {
+        amountBorrowed = BorrowInterestMapping[borrower].borrowAmount;
     }
 
     /**
         Function to show full repay amount
      */
-    function getRepayAmount() external view returns (uint256 repayAmount) {
+    function getBorrowedRepayAmount(address borrower)
+        public
+        view
+        returns (uint256 repayAmount)
+    {
         repayAmount =
-            BorrowInterestMapping[msg.sender].borrowAmount +
-            viewBorrowAccruedTokensAmount();
+            BorrowInterestMapping[borrower].borrowAmount +
+            viewBorrowAccruedTokensAmount(borrower);
     }
 
     /**
@@ -248,18 +258,18 @@ contract InterestModel {
     }
 
     /**
-        View unclaimed tokens for user AccountInterest
+        View unclaimed tokens for user BorrowInterest
      */
-    function viewBorrowAccruedTokensAmount()
+    function viewBorrowAccruedTokensAmount(address borrower)
         public
         view
         returns (uint256 accruedTokenAmount)
     {
         BorrowInterest memory borrowInterestMapping = BorrowInterestMapping[
-            msg.sender
+            borrower
         ];
         // This is calculating delta from last deposit / withdrawl of account to last accruedInterest
-        accruedTokenAmount = getBorrowAccruedTokensAmount();
+        accruedTokenAmount = getBorrowAccruedTokensAmount(borrower);
         // This is the delta from last accruedInterest() to current block should be 0 when
         // accrued is called before getAccruedTokensAmount()
         accruedTokenAmount +=
@@ -297,13 +307,13 @@ contract InterestModel {
         Function to calculate user AccountInterest delta variables right after a
         accrueInterest() function
      */
-    function getBorrowInterestDelta()
+    function getBorrowInterestDelta(address borrower)
         internal
         view
         returns (bytes memory params)
     {
         BorrowInterest memory borrowInterestMapping = BorrowInterestMapping[
-            msg.sender
+            borrower
         ];
 
         uint256 deltaBlockNum = currentBlockNumber -
@@ -336,19 +346,21 @@ contract InterestModel {
         If isClaimed == true, we set the unclaimedInterestTokenAmount to 0 because 
         we put those tokens to the account.
      */
-    function updateBorrowInterestMapping(uint256 amount) internal {
+    function updateBorrowInterestMapping(address borrower, uint256 amount)
+        internal
+    {
         BorrowInterest memory borrowInterestMapping = BorrowInterestMapping[
-            msg.sender
+            borrower
         ];
         // Update current account information to latest data
-        uint256 borrowAmountToCompound = getBorrowAccruedTokensAmount();
-        BorrowInterestMapping[msg.sender] = BorrowInterest(
+        uint256 borrowAmountToCompound = getBorrowAccruedTokensAmount(borrower);
+        BorrowInterestMapping[borrower] = BorrowInterest(
             currentSumOfBorrowInterest,
             currentBlockNumber,
             0,
             borrowInterestMapping.borrowAmount + amount + borrowAmountToCompound
         );
-        borrowAmount += borrowAmountToCompound;
+        increaseBorrowAmount(borrowAmountToCompound + amount);
         // During testing there was rounding to the .0000000000001 place
         // To prevent an error message, I allow for rounding up to
         // .00001
@@ -367,9 +379,67 @@ contract InterestModel {
     }
 
     /**
+        update borrow interest mapping when paying off loan
+    */
+    function decreaseBorrowInterestMapping(address borrower, uint256 amount)
+        internal
+    {
+        BorrowInterest memory borrowInterestMapping = BorrowInterestMapping[
+            borrower
+        ];
+        BorrowInterestMapping[borrower] = BorrowInterest(
+            currentSumOfBorrowInterest,
+            currentBlockNumber,
+            0,
+            borrowInterestMapping.borrowAmount - amount
+        );
+        decreaseBorrowAmount(amount);
+    }
+
+    /**
         Get current borrowAmount
       */
     function totalAmountBorrowed() external view returns (uint256) {
         return borrowAmount;
+    }
+
+    function increaseBorrowAmount(uint256 amount) internal {
+        borrowAmount += amount;
+    }
+
+    function decreaseBorrowAmount(uint256 amount) internal {
+        borrowAmount -= amount;
+    }
+
+    /**
+        Function to view current outstanding borrowed interest
+    */
+    function totalBorrowedInterest() external view returns (uint256) {
+        return borrowAmountNotCompounded;
+    }
+
+    /**
+        Gets total amount invested 
+    */
+    function totalAmountInvested() external view returns (uint256) {
+        return collateralToken.totalSupply();
+    }
+
+    /**
+        Gets total amount interest for investors
+    */
+    function totalAmountInvestedInterest() external view returns (uint256) {
+        return currentUnclaimedTokenAmount;
+    }
+
+    function setCurrentBorrowInterestRatePerBlock(uint8 amount)
+        public
+        onlyOwner
+    {
+        currentBorrowInterestRatePerBlock = amount;
+    }
+
+    function setCurrentInterestRatePerBlock(uint8 amount) public onlyOwner {
+        currentInterestRatePerBlock = amount;
     }
 }
