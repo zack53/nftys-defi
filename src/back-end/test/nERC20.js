@@ -2,13 +2,14 @@
 //The link above is a good resource for everything related to truffle contracts.
 
 const { web3, assert, network } = require("hardhat")
-const { DAI, WTOKEN } = config.EVMAddresses[network.name]
+const { DAI, WTOKEN, AdvancedCollectibleAddress } = config.EVMAddresses[network.name]
 const { ERC20ABI, UniSwapV3RouterAddress } = config.EVMAddresses
 const { wrapToken } = require('../util/TokenUtil')
 const { BigNumber } = require('bignumber.js')
 //Creates a truffe contract from compiled artifacts.
 const nERC20 = artifacts.require("NERC20")
 const UniSwapSingleSwap = artifacts.require("UniSwapSingleSwap")
+const AdvancedCollectible = artifacts.require("AdvancedCollectible")
 
 const DAIcontract = new web3.eth.Contract(ERC20ABI, DAI)
 const WETHContract = new web3.eth.Contract(ERC20ABI, WTOKEN)
@@ -23,6 +24,8 @@ describe("nERC20 contract", function () {
   let borrowInterestDelta
   let blocksIncrementedBorrowCheck = 0
   let pairFee = 3000
+  let advancedCollectible
+
   before(async function () {
     accounts = await web3.eth.getAccounts()
     //Checks to see if the first account has ETH
@@ -32,6 +35,10 @@ describe("nERC20 contract", function () {
     nERC20Contract = await nERC20.new('NFTY DAI', 'NDAI', decimals, DAI)
     //deploy UniSwap contract
     uniSwapSingleSwap = await UniSwapSingleSwap.new(UniSwapV3RouterAddress)
+
+    // get contractAdvancedCollectible
+    advancedCollectible = await AdvancedCollectible.at(AdvancedCollectibleAddress)
+
   })
 
   it("Should deploy with the name NFTY DAI", async function () {
@@ -52,16 +59,9 @@ describe("nERC20 contract", function () {
 
   it("Should transfer WMATIC in exchange for DAI", async function () {
 
-    let wethAmountToTransfer = 5
+    let wethAmountToTransfer = 3
     //Send ETH to WTOKEN contract in return for WTOKEN
     await wrapToken(wethAmountToTransfer, accounts[0], WETHContract)
-    //Sends WTOKEN to the deployed contract and
-    //checks the results.
-
-    //await sendWrapEth(wethAmountToTransfer,uniSwapSingleSwap.address, accounts[0])
-    //let contractWethBal = await WETHContract.methods.balanceOf(uniSwapSingleSwap.address).call()
-    //assert.equal(web3.utils.fromWei(contractWethBal,'ether'),wethAmountToTransfer)
-
     await WETHContract.methods.approve(uniSwapSingleSwap.address, web3.utils.toWei(wethAmountToTransfer.toString(), 'ether')).send({ from: accounts[0] })
 
     //The link at the top of this file describes how to override 
@@ -75,14 +75,14 @@ describe("nERC20 contract", function () {
   })
 
   it("Should transfer some DAI to accounts[1]", async () => {
-    let tradeAmount = BigNumber(10).shiftedBy(decimals)
+    let tradeAmount = BigNumber(1).shiftedBy(decimals - 1)
     await DAIcontract.methods.transfer(accounts[1], tradeAmount.toString()).send({ from: accounts[0] })
     let daiBal = await DAIcontract.methods.balanceOf(accounts[1]).call()
     assert.equal(tradeAmount.toString(), daiBal.toString())
   })
 
   it("Should have totalSupply of amount minted for accounts[0]", async function () {
-    let mintAmount = BigNumber(10).shiftedBy(decimals).toString()
+    let mintAmount = BigNumber(1).shiftedBy(decimals).toString()
     assert.equal(await nERC20Contract.totalSupply(), 0)
     await DAIcontract.methods.approve(nERC20Contract.address, mintAmount).send({ from: accounts[0] })
     // Increments one block
@@ -99,7 +99,7 @@ describe("nERC20 contract", function () {
   })
 
   it("Should supplyTokens value for accounts[1]", async () => {
-    let mintAmount = BigNumber(10).shiftedBy(decimals).toString()
+    let mintAmount = BigNumber(1).shiftedBy(decimals - 1).toString()
     await DAIcontract.methods.approve(nERC20Contract.address, mintAmount).send({ from: accounts[1] })
     let balanceBefore = await nERC20Contract.balanceOf(accounts[1])
     // Increments one block
@@ -119,7 +119,7 @@ describe("nERC20 contract", function () {
   })
 
   it("Should deposit collateral and get DAI back", async function () {
-    let depositAmount = BigNumber(1).shiftedBy(decimals)
+    let depositAmount = BigNumber(1).shiftedBy(decimals - 1)
     let DAICBal = await DAIcontract.methods.balanceOf(nERC20Contract.address).call()
     let DAICAccountBalBefore = await DAIcontract.methods.balanceOf(accounts[0]).call()
     assert.equal(await nERC20Contract.totalSupply(), DAICBal)
@@ -145,10 +145,17 @@ describe("nERC20 contract", function () {
 
   })
 
+  it("Should have doggie amount for account.", async () => {
+
+    let dogCount = await advancedCollectible.balanceOf(accounts[0])
+    assert.isAbove(dogCount.toNumber(), 0)
+  })
+
   it("Should borrow some DAI", async () => {
     let borrowAmount = BigNumber(1).shiftedBy(decimals)
     let DAICAccountBalBefore = await DAIcontract.methods.balanceOf(accounts[2]).call()
-    await nERC20Contract.borrowTokens(borrowAmount.toString(), 2, { from: accounts[2] })
+    await advancedCollectible.approve(nERC20Contract.address, 2, { from: accounts[2] })
+    await nERC20Contract.borrowTokens(borrowAmount.toString(), borrowAmount.multipliedBy(4).toString(), advancedCollectible.address, 2, { from: accounts[2] })
     let DAICAccountBalAfter = await DAIcontract.methods.balanceOf(accounts[2]).call()
     assert.equal(DAICAccountBalAfter - DAICAccountBalBefore, borrowAmount)
 
@@ -158,10 +165,37 @@ describe("nERC20 contract", function () {
     borrowInterestDelta = await nERC20Contract.viewBorrowAccruedTokensAmount({ from: accounts[2] })
     blocksIncrementedBorrowCheck++
     assert.approximately(borrowInterestDelta.toNumber(), BigNumber(45662100456).multipliedBy(blocksIncrementedBorrowCheck).toNumber(), 5000)
+
+  })
+
+
+  it("Should fail to borrow DAI due to outstanding loan amount", async () => {
+    let borrowAmount = BigNumber(1).shiftedBy(decimals)
+    await advancedCollectible.approve(nERC20Contract.address, 1, { from: accounts[2] })
+    let dogCounteBefore = await advancedCollectible.balanceOf(accounts[2])
+    let dogCounteAfter
+    blocksIncrementedBorrowCheck += 1
+    try {
+      await nERC20Contract.borrowTokens(borrowAmount.toString(), borrowAmount.multipliedBy(4).toString(), advancedCollectible.address, 1, { from: accounts[2] })
+    } catch (error) {
+      blocksIncrementedBorrowCheck += 1
+      dogCounteAfter = await advancedCollectible.balanceOf(accounts[2])
+    }
+    assert.equal(dogCounteBefore.toNumber(), dogCounteAfter.toNumber())
+
+
+  })
+
+  it("Should have doggie amount on smart contract.", async () => {
+
+    let dogCount = await advancedCollectible.balanceOf(nERC20Contract.address)
+
+    assert.isAbove(dogCount.toNumber(), 0)
   })
 
   it("Should correctly identify borrow interest.", async function () {
     let borrowInterest = await nERC20Contract.viewBorrowAccruedTokensAmount({ from: accounts[2] })
+
     assert.approximately(borrowInterest.toNumber(), BigNumber(45662100456).multipliedBy(blocksIncrementedBorrowCheck).toNumber(), 5000)
   })
 
@@ -219,6 +253,12 @@ describe("nERC20 contract", function () {
     assert.notEqual(DAICBal / 10 ** 8, 0)
   })
 
+
+  it("Should have 1 dogs.", async () => {
+    let dogCount = await advancedCollectible.balanceOf(accounts[2])
+    assert.equal(dogCount.toNumber(), 1)
+  })
+
   it("Should repay all debt.", async function () {
     // Gets total repay amount to set allowance and adds a .001 extra allowance
     // to be withdraw
@@ -233,6 +273,11 @@ describe("nERC20 contract", function () {
     repayAmount = await nERC20Contract.getRepayAmount({ from: accounts[2] })
     assert.equal(repayAmount.toNumber(), 0)
     assert.equal((await nERC20Contract.totalAmountBorrowed()).toString(), '0')
+  })
+
+  it("Should have doggie amount back on account.", async () => {
+    let dogCount = await advancedCollectible.balanceOf(accounts[2])
+    assert.isAbove(dogCount.toNumber(), 1)
   })
 
 })

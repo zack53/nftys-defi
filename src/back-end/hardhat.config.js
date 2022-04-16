@@ -19,7 +19,8 @@ module.exports = {
     hardhat: {
       forking: {
         url: process.env.MUMBAI_URL,
-      }
+      },
+      accounts: [{ privateKey: process.env.PRIVATE_KEY_1, balance: '1000000000000000000000' }, { privateKey: process.env.PRIVATE_KEY_2, balance: '1000000000000000000000' }, { privateKey: process.env.PRIVATE_KEY_3, balance: '1000000000000000000000' }]
     },
     rinkeby: {
       url: process.env.RINKEBY_URL,

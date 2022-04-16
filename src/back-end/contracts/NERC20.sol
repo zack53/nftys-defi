@@ -5,6 +5,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "./InterestModel.sol";
 
 import "hardhat/console.sol";
@@ -40,10 +42,18 @@ import "hardhat/console.sol";
     demand curve.
  */
 
-contract NERC20 is ERC20, InterestModel {
+contract NERC20 is ERC20, InterestModel, IERC721Receiver {
     // Variables needed to store contract state
     uint8 immutable _decimals;
     IERC20 immutable erc20Token;
+
+    mapping(address => NFTOwnerInfo) public nftOwnerMapping;
+
+    struct NFTOwnerInfo {
+        IERC721 NFTContract;
+        uint256 tokenId;
+        uint256 nftCollateral;
+    }
 
     /**
         Constructor for nERC20 token, passes values to ERC20 parent
@@ -127,14 +137,33 @@ contract NERC20 is ERC20, InterestModel {
         Borrows tokens
         TODO: implement the nftCollateral transfer
      */
-    function borrowTokens(uint256 amount, uint256 nftCollateral) external {
+    function borrowTokens(
+        uint256 amount,
+        uint256 nftCollateral,
+        IERC721 NFTContract,
+        uint256 tokenId
+    ) external {
         accrueInterest();
-        // require(amount >= nftCollateral / 4, "NFT Amount is not high enough");
+
+        require(
+            address(nftOwnerMapping[msg.sender].NFTContract) == address(0),
+            "You already have a NFT as collateral."
+        );
+        require(amount >= nftCollateral / 4, "NFT Amount is not high enough");
         require(
             erc20Token.balanceOf(address(this)) >= amount,
             "We do not have enough funds to fund this loan."
         );
+
         updateBorrowInterestMapping(amount);
+
+        nftOwnerMapping[msg.sender] = NFTOwnerInfo(
+            NFTContract,
+            tokenId,
+            nftCollateral
+        );
+        NFTContract.safeTransferFrom(msg.sender, address(this), tokenId);
+
         borrowAmount += amount;
         SafeERC20.safeTransfer(erc20Token, msg.sender, amount);
     }
@@ -152,8 +181,12 @@ contract NERC20 is ERC20, InterestModel {
         uint256 fullAmountToRepay = borrowInterestMapping
             .borrowAmountNotCompounded + borrowInterestMapping.borrowAmount;
 
+        uint256 erc20Balance = erc20Token.balanceOf(msg.sender);
+
+        NFTOwnerInfo memory nftOwnerInfo = nftOwnerMapping[msg.sender];
+
         require(
-            erc20Token.balanceOf(msg.sender) >= fullAmountToRepay,
+            erc20Balance >= fullAmountToRepay,
             "You do not have enough to repay all of your debt"
         );
 
@@ -164,8 +197,25 @@ contract NERC20 is ERC20, InterestModel {
             fullAmountToRepay
         );
 
+        // Transfers NFT back on full repaymnet
+        nftOwnerInfo.NFTContract.safeTransferFrom(
+            address(this),
+            msg.sender,
+            nftOwnerInfo.tokenId
+        );
+
         borrowAmount -= fullAmountToRepay;
         delete BorrowInterestMapping[msg.sender];
+        delete nftOwnerMapping[msg.sender];
+
+        // Convert to int256 for checking due to possibility that the
+        // borrow amount - amount could be less than 0
+        if (
+            int256(nftOwnerInfo.nftCollateral) / 2 <
+            (int256(borrowInterestMapping.borrowAmount) - int256(erc20Balance))
+        ) {
+            liquidateNFT(msg.sender, erc20Balance);
+        }
     }
 
     /**
@@ -175,14 +225,16 @@ contract NERC20 is ERC20, InterestModel {
         accrueInterest();
         updateBorrowInterestMapping(0);
 
-        require(
-            erc20Token.balanceOf(msg.sender) >= amount,
-            "You do not have enough ERC20 token to pay this amount."
-        );
+        NFTOwnerInfo memory nftOwnerInfo = nftOwnerMapping[msg.sender];
 
         BorrowInterest memory borrowInterestMapping = BorrowInterestMapping[
             msg.sender
         ];
+
+        require(
+            erc20Token.balanceOf(msg.sender) >= amount,
+            "You do not have enough ERC20 token to pay this amount."
+        );
 
         if (
             borrowInterestMapping.borrowAmount +
@@ -205,5 +257,42 @@ contract NERC20 is ERC20, InterestModel {
             );
             borrowAmount -= amount;
         }
+        // Convert to int256 for checking due to possibility that the
+        // borrow amount - amount could be less than 0
+        if (
+            int256(nftOwnerInfo.nftCollateral) / 2 < // Switch this back to < after testing
+            (int256(borrowInterestMapping.borrowAmount) - int256(amount))
+        ) {
+            liquidateNFT(msg.sender, amount);
+        }
+    }
+
+    /**
+        Function needed to perform safe transfer of NFTs to this contract
+    */
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external returns (bytes4) {
+        return
+            bytes4(
+                keccak256("onERC721Received(address,address,uint256,bytes)")
+            );
+    }
+
+    /**
+        Function to liquidate position and put NFT in list for sale
+    */
+    function liquidateNFT(address nftOwner, uint256 amount) internal {
+        BorrowInterest memory borrowInterestMapping = BorrowInterestMapping[
+            nftOwner
+        ];
+        // If statement to prevent error when subtracting to 0
+        // when values are equal
+        borrowAmount -= (borrowInterestMapping.borrowAmount - amount);
+        delete BorrowInterestMapping[msg.sender];
+        delete nftOwnerMapping[msg.sender];
     }
 }
