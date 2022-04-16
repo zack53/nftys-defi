@@ -8,34 +8,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 
 /**
-    nERC20 token TODO: implement accrued interest based on totalSupply amount.
-    TODO: implement method to find current unrealized interest for account holder.
-    TODO: implement method for account holder to withdraw unrealized interest gained.
-    TODO: implement method for borrowing DAI for NFT collateral
-
-    Current idea of implementing interest calculation for users
-
-    Store current sum of interest on contract. 
-    Store unclaimed token amount to be claimed by function for user.
-    Store current Block Number to use for interest calculation.
-
-    In AccountInterest struct store:
-        sum of interest when struct was created
-        block number of when struct was created
-
-    The idea is to do currentSumOfInterest - AccountInterest.currentSumOfInterets
-    to get the total interest gained for an account so far.
-
-    Then, we will need to do currentBlockNumber-AccountInterest.currentBlockNumber
-    to get the amount of blocks to divide the delta sum of interest by.
-
-    This will give us an average amount of interest per block since the user has
-    held nERC20 token. Then, we can take that based on what the current balance
-    of their nERC20 token to determine what piece of the total currentUnclaimedTokenAmount
-    the user is entitled to.
-
-    This above approach could allow for dynamic interest rate per block using supply and
-    demand curve.
+    Interest Model contract responsible for storing the interest
+    of both borrowers and investors.
  */
 
 contract InterestModel is Ownable {
@@ -328,9 +302,7 @@ contract InterestModel is Ownable {
     }
 
     /**
-        Updates account interest mapping if user deposits or withdraws collateral.
-        If isClaimed == true, we set the unclaimedInterestTokenAmount to 0 because 
-        we put those tokens to the account.
+        Updates account interest mapping for specific investor
      */
     function updateAccountInterestMapping() internal {
         // Update current account information to latest data
@@ -342,9 +314,7 @@ contract InterestModel is Ownable {
     }
 
     /**
-        Updates account interest mapping if user deposits or withdraws collateral.
-        If isClaimed == true, we set the unclaimedInterestTokenAmount to 0 because 
-        we put those tokens to the account.
+        Updates borrow interest mapping on specific borrower
      */
     function updateBorrowInterestMapping(address borrower, uint256 amount)
         internal
@@ -398,15 +368,21 @@ contract InterestModel is Ownable {
 
     /**
         Get current borrowAmount
-      */
+    */
     function totalAmountBorrowed() external view returns (uint256) {
         return borrowAmount;
     }
 
+    /**
+        Increase the borrowAmount on contract
+    */
     function increaseBorrowAmount(uint256 amount) internal {
         borrowAmount += amount;
     }
 
+    /**
+        Decrease the borrowAmount on contract
+    */
     function decreaseBorrowAmount(uint256 amount) internal {
         borrowAmount -= amount;
     }
@@ -432,6 +408,9 @@ contract InterestModel is Ownable {
         return currentUnclaimedTokenAmount;
     }
 
+    /**
+        Sets the current borrowing interest rate
+    */
     function setCurrentBorrowInterestRatePerBlock(uint8 amount)
         public
         onlyOwner
@@ -439,6 +418,9 @@ contract InterestModel is Ownable {
         currentBorrowInterestRatePerBlock = amount;
     }
 
+    /**
+        Sets the current investing ineterst reate
+    */
     function setCurrentInterestRatePerBlock(uint8 amount) public onlyOwner {
         currentInterestRatePerBlock = amount;
     }

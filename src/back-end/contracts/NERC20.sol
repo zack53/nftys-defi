@@ -11,13 +11,17 @@ import "./InterestModel.sol";
 
 import "hardhat/console.sol";
 
+// TODO: Need to test to ensure interest is making
+// sense for total interest calulations
 contract NERC20 is ERC20, InterestModel, IERC721Receiver {
     // Variables needed to store contract state
     uint8 immutable _decimals;
     bool isOperational;
     IERC20 immutable erc20Token;
-    // Add mapping for NFT than needs to be sold
-    // once sold, delete from mapping.
+    uint256 minimumDividor;
+
+    // Sales mapping that maps NFT contract and tokenId to a
+    // set amount for the NFT to be sold.
     mapping(address => mapping(uint256 => uint256)) NFTSalesMapping;
 
     // Should create an emit on liquidation for
@@ -38,6 +42,14 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
     event WithdrawInvestedTokens(
         address indexed investor,
         uint256 amountWithdrawn
+    );
+
+    // Emits when liquid NFT has been sold
+    event NFTLiquiditySold(
+        address purchaser,
+        uint256 purchaseAmount,
+        address NFTContract,
+        uint256 tokenId
     );
 
     mapping(address => NFTOwnerInfo) public NFTOwnerMapping;
@@ -61,6 +73,7 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
         erc20Token = tokenAddress_;
         currentBlockNumber = block.number;
         isOperational = true;
+        minimumDividor = 2;
     }
 
     /**
@@ -110,7 +123,7 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
 
     /**
         Claims token for user account
-      */
+    */
     function claimAccruedTokens() external isContractOperational {
         accrueInterest();
         AccountInterest memory accountInterestMapping = AccountInterestMapping[
@@ -126,6 +139,7 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
             msg.sender,
             accountInterestMapping.unclaimedInterestTokenAmount
         );
+
         AccountInterestMapping[msg.sender] = AccountInterest(
             currentSumOfInterest,
             currentBlockNumber,
@@ -158,7 +172,7 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
         );
         require(
             amount >= nftCollateralAmount / 4,
-            "NFT Amount is not high enough"
+            "NFT Collateral Amount is not high enough for request loan"
         );
         require(
             erc20Token.balanceOf(address(this)) >= amount,
@@ -171,6 +185,7 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
             tokenId,
             nftCollateralAmount
         );
+
         NFTContract.safeTransferFrom(borrower, address(this), tokenId);
 
         SafeERC20.safeTransfer(erc20Token, borrower, amount);
@@ -203,6 +218,7 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
             "You do not have enough to repay all of your debt"
         );
 
+        // Transfer ERC20 token to this address
         SafeERC20.safeTransferFrom(
             erc20Token,
             borrower,
@@ -225,10 +241,10 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
         // Convert to int256 for checking due to possibility that the
         // borrow amount - amount could be less than 0
         if (
-            int256(nftOwnerInfo.nftCollateralAmount) / 2 <
+            int256(nftOwnerInfo.nftCollateralAmount) / int256(minimumDividor) <
             (int256(borrowInterestMapping.borrowAmount) - int256(erc20Balance))
         ) {
-            liquidateNFT(msg.sender, erc20Balance);
+            liquidateNFT(borrower, erc20Balance);
         }
 
         emit PayedOnLoan(borrower, fullAmountToRepay);
@@ -244,17 +260,21 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
         accrueInterest();
         updateBorrowInterestMapping(borrower, 0);
 
+        // Set memory variables needed
         NFTOwnerInfo memory nftOwnerInfo = NFTOwnerMapping[borrower];
-
         BorrowInterest memory borrowInterestMapping = BorrowInterestMapping[
             borrower
         ];
 
+        // Ensure user has enough to repay balance
         require(
             erc20Token.balanceOf(borrower) >= amount,
             "You do not have enough ERC20 token to pay this amount."
         );
 
+        // If the amount is enough to repay full amount,
+        // we call the repayFullBorrowAmount function.
+        // Else continue with a portion of the payment
         if (
             borrowInterestMapping.borrowAmount +
                 borrowInterestMapping.borrowAmountNotCompounded <
@@ -274,7 +294,7 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
         // Convert to int256 for if statement check due to possibility
         // that the borrow amount - amount could be less than 0
         if (
-            int256(nftOwnerInfo.nftCollateralAmount) / 2 <
+            int256(nftOwnerInfo.nftCollateralAmount) / int256(minimumDividor) <
             (int256(borrowInterestMapping.borrowAmount) - int256(amount))
         ) {
             liquidateNFT(borrower, amount);
@@ -289,7 +309,7 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
         address from,
         uint256 tokenId,
         bytes calldata data
-    ) external returns (bytes4) {
+    ) external pure returns (bytes4) {
         return
             bytes4(
                 keccak256("onERC721Received(address,address,uint256,bytes)")
@@ -308,20 +328,37 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
         ];
         // Subtract borrow amount that the payment does not cover
         decreaseBorrowAmount(borrowInterestMapping.borrowAmount - amount);
-        NFTOwnerInfo memory nftOwnerInfo = NFTOwnerMapping[msg.sender];
+        NFTOwnerInfo memory nftOwnerInfo = NFTOwnerMapping[nftOwner];
+
+        // Ensures we get something above 0 for NFT Liquidation Value
+        uint256 nftLiquidationValue = calculateLiquidValue(
+            nftOwnerInfo.nftCollateralAmount,
+            minimumDividor
+        );
+        require(
+            NFTSalesMapping[address(nftOwnerInfo.NFTContract)][
+                nftOwnerInfo.tokenId
+            ] == 0,
+            "Error NFT is already on sale"
+        );
+        //Map liquid value to the contract and token id
         NFTSalesMapping[address(nftOwnerInfo.NFTContract)][
             nftOwnerInfo.tokenId
-        ] = nftOwnerInfo.nftCollateralAmount;
+        ] = nftLiquidationValue;
+
         emit NFTLiquidated(
             address(nftOwnerInfo.NFTContract),
             nftOwnerInfo.tokenId
         );
-        delete BorrowInterestMapping[msg.sender];
-        delete NFTOwnerMapping[msg.sender];
+        delete BorrowInterestMapping[nftOwner];
+        delete NFTOwnerMapping[nftOwner];
     }
 
     /**
-        TODO: implement force liquidation 
+        Force liquidation is something anyone could call on
+        an idle account that has not repayed the loan amount.
+        This will force the NFT to be liquidated only if certain
+        conditions are met.
     */
     function forceLiquidateIdleNFT(address nftOwner)
         external
@@ -334,7 +371,7 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
         // Convert to int256 for checking due to possibility that the
         // borrow amount - amount could be less than 0
         require(
-            int256(nftOwnerInfo.nftCollateralAmount) / 2 <
+            int256(nftOwnerInfo.nftCollateralAmount) / int256(minimumDividor) <
                 (int256(borrowAmount)),
             "Amount owed is not enough to liquidate NFT."
         );
@@ -347,22 +384,52 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
     function nftPurchasePrice(address nftContract, uint256 tokenId)
         public
         view
-        isContractOperational
         returns (uint256)
     {
         uint256 nftCollateralAmount = NFTSalesMapping[nftContract][tokenId];
-        return nftCollateralAmount / 2;
+        require(
+            nftCollateralAmount > 0,
+            "NFT is not listed in NFTSalesMapping."
+        );
+        return nftCollateralAmount;
     }
 
     /**
-        TODO: implement function to purchase liquidated NFT contract
+        Function to adjust minimum prchase price
+    */
+    function setMinimumDividor(uint256 amount)
+        external
+        onlyOwner
+        isContractOperational
+    {
+        minimumDividor = amount;
+    }
+
+    /**
+        Calculates the liquid value of NFT
+    */
+    function calculateLiquidValue(uint256 nftAmount, uint256 dividor)
+        internal
+        pure
+        returns (uint256 resultAmount)
+    {
+        resultAmount = (nftAmount / dividor);
+        if (resultAmount == 0) {
+            resultAmount = 1;
+        }
+    }
+
+    /**
+        Sells the liquidated NFT to purchaser.
+        I gated this behind onlyOwner to be able to 
+        implement an auction before selling NFT.
     */
     function sellLiquidNFT(
         address purchaser,
         uint256 purchaseAmount,
         IERC721 nftContract,
         uint256 tokenId
-    ) external isContractOperational {
+    ) external onlyOwner isContractOperational {
         uint256 nftCollateralAmount = nftPurchasePrice(
             address(nftContract),
             tokenId
@@ -377,7 +444,7 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
             "You did not provide enough to purchase this NFT"
         );
 
-        uint256 erc20Balance = erc20Token.balanceOf(msg.sender);
+        uint256 erc20Balance = erc20Token.balanceOf(purchaser);
         require(
             erc20Balance >= purchaseAmount,
             "You do not have enough ERC20 token to complete this purchase."
@@ -385,11 +452,19 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
         // Transfer money to this account before transfer of NFT to buyer
         SafeERC20.safeTransferFrom(
             erc20Token,
-            msg.sender,
+            purchaser,
             address(this),
             purchaseAmount
         );
+        // Transfer NFT to purchaser
         nftContract.safeTransferFrom(address(this), purchaser, tokenId);
+        emit NFTLiquiditySold(
+            purchaser,
+            purchaseAmount,
+            address(nftContract),
+            tokenId
+        );
+        delete NFTSalesMapping[address(nftContract)][tokenId];
     }
 
     /**

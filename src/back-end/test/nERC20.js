@@ -322,106 +322,53 @@ describe("nERC20 contract", function () {
     await nERC20Contract.setCurrentBorrowInterestRatePerBlock(255)
     await DAIcontract.methods.approve(nERC20Contract.address, BigNumber(2).shiftedBy(decimals).toString()).send({ from: accounts[2] })
     await increaseInterest()
+    // Reduces liquidation requirement
+    await nERC20Contract.setMinimumDividor(10)
+    // Calls liquidation on an account
+    await nERC20Contract.forceLiquidateIdleNFT(accounts[2])
   })
 
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
+  it("Account 1 should not be able to purchase account because didn't go through owner", async () => {
+    let nftPurchasePrice = await nERC20Contract.nftPurchasePrice(advancedCollectible.address, 2)
+    assert.equal(nftPurchasePrice.toString(), '400000000000000000')
+    await DAIcontract.methods.approve(nERC20Contract.address, BigNumber(2).shiftedBy(decimals).toString()).send({ from: accounts[1] })
+    try {
+      await nERC20Contract.sellLiquidNFT(accounts[1], nftPurchasePrice, advancedCollectible.address, 2, { from: accounts[1] })
+    } catch (error) {
+      let accountDoggieAmount = await advancedCollectible.balanceOf(accounts[1])
+      assert.equal(accountDoggieAmount.toString(), '0')
+    }
   })
 
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
+  it("Should shutdown contract actions.", async () => {
+    await nERC20Contract.shutdownContract()
   })
 
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
+  it("Account 1 should fail to purchase due to contract being shutdown", async () => {
+    let nftPurchasePrice = await nERC20Contract.nftPurchasePrice(advancedCollectible.address, 2)
+    assert.equal(nftPurchasePrice.toString(), '400000000000000000')
+    let daiBal = await DAIcontract.methods.balanceOf(accounts[1]).call()
+    await DAIcontract.methods.approve(nERC20Contract.address, BigNumber(4).shiftedBy(decimals + 1).toString()).send({ from: accounts[1] })
+    try {
+      await nERC20Contract.sellLiquidNFT(accounts[1], nftPurchasePrice, advancedCollectible.address, 2)
+    } catch (error) {
+      let accountDoggieAmount = await advancedCollectible.balanceOf(accounts[1])
+      assert.equal(accountDoggieAmount.toString(), '0')
+    }
   })
 
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
+  it("Should reopen contract actions.", async () => {
+    await nERC20Contract.startContract()
   })
 
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
-  })
-
-  it("Should loop sending transactions to increment block numbers until NFT can be liquidated", async () => {
-    await increaseInterest()
+  it("Account 1 should be able to purchase the NFT that has been liquidated", async () => {
+    let nftPurchasePrice = await nERC20Contract.nftPurchasePrice(advancedCollectible.address, 2)
+    assert.equal(nftPurchasePrice.toString(), '400000000000000000')
+    let daiBal = await DAIcontract.methods.balanceOf(accounts[1]).call()
+    await DAIcontract.methods.approve(nERC20Contract.address, BigNumber(4).shiftedBy(decimals + 1).toString()).send({ from: accounts[1] })
+    await nERC20Contract.sellLiquidNFT(accounts[1], nftPurchasePrice, advancedCollectible.address, 2)
+    let accountDoggieAmount = await advancedCollectible.balanceOf(accounts[1])
+    assert.equal(accountDoggieAmount.toString(), '1')
   })
 
 })
@@ -430,7 +377,6 @@ let increaseInterest = async () => {
   let liquidateAmount = BigNumber(1).shiftedBy(decimals).multipliedBy(2)
   let repaymentAmount = BigNumber(0)
   let counter = 0
-  console.log(liquidateAmount.toString())
   while (liquidateAmount.comparedTo(repaymentAmount)) {
     repaymentAmount = await nERC20Contract.getBorrowedRepayAmount(accounts[2])
     await web3.eth.sendTransaction({ from: accounts[1], to: accounts[2], value: BigNumber(1).shiftedBy(8).toString() })
@@ -446,9 +392,6 @@ let increaseInterest = async () => {
     await nERC20Contract.repayBorrowAmount(accounts[2], 1, { from: accounts[2] })
     counter += 1
     if (counter % 100 == 0) {
-      console.log(repaymentAmount.toString())
-    }
-    if (counter % 300 == 0) {
       break
     }
   }
