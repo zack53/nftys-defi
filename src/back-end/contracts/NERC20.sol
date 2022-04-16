@@ -46,6 +46,14 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
     // Variables needed to store contract state
     uint8 immutable _decimals;
     IERC20 immutable erc20Token;
+    // Add mapping for NFT than needs to be sold
+    // once sold, delete from mapping.
+    mapping(address => uint256) NFTSalesMapping;
+
+    // Should createa an emit on liquidation for
+    // information to be parsed and picked up
+    // by outside to implement sale.
+    event NFTLiquidated(address indexed NFTContract, uint256 tokenId);
 
     mapping(address => NFTOwnerInfo) public nftOwnerMapping;
 
@@ -289,10 +297,20 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
         BorrowInterest memory borrowInterestMapping = BorrowInterestMapping[
             nftOwner
         ];
-        // If statement to prevent error when subtracting to 0
-        // when values are equal
+        // Subtract borrow amount that the payment does not cover
         borrowAmount -= (borrowInterestMapping.borrowAmount - amount);
+        NFTOwnerInfo memory nftOwnerInfo = nftOwnerMapping[msg.sender];
+        NFTSalesMapping[address(nftOwnerInfo.NFTContract)] = nftOwnerInfo
+            .tokenId;
+        emit NFTLiquidated(
+            address(nftOwnerInfo.NFTContract),
+            nftOwnerInfo.tokenId
+        );
         delete BorrowInterestMapping[msg.sender];
         delete nftOwnerMapping[msg.sender];
     }
+
+    /**
+        TODO: implement function to purchase liquidated NFT contract
+    */
 }
