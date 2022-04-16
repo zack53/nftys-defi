@@ -11,8 +11,16 @@ import "./InterestModel.sol";
 
 import "hardhat/console.sol";
 
-// TODO: Need to test to ensure interest is making
-// sense for total interest calulations
+/**
+    TODO: Need to test to ensure interest is making
+    sense for total interest calulations
+    
+    ---- Future Improvements could be ----
+    1.) Create a delegatecall to ineterst model in case of emergency we can
+    fix the logic on the InterestModel contract and start back NERC20
+        * Requires decoupling the contracts completely
+    2.) Impelment automatic interest calculation based on supply and demand
+*/
 contract NERC20 is ERC20, InterestModel, IERC721Receiver {
     // Variables needed to store contract state
     uint8 immutable _decimals;
