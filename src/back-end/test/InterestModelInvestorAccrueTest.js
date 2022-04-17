@@ -63,12 +63,6 @@ describe("nERC20 contract", function () {
     //Send ETH to WTOKEN contract in return for WTOKEN
     await wrapToken(wethAmountToTransfer, accounts[0], WETHContract)
     await WETHContract.methods.approve(uniSwapSingleSwap.address, web3.utils.toWei(wethAmountToTransfer.toString(), 'ether')).send({ from: accounts[0] })
-
-    //The link at the top of this file describes how to override 
-    //the from value when dealing with transactions using truffle contracts.
-    //I am sending the wethAmountToTransfer to the contract to be swapped on
-    //UniSwap V3 Pool for DAI. The DAI is then transferred back to the account
-    //that sent the request.
     await uniSwapSingleSwap.swapExactInputSingle(web3.utils.toWei(wethAmountToTransfer.toString(), 'ether'), 0, WTOKEN, DAI, pairFee, { from: accounts[0] })
     let DAICBal = await DAIcontract.methods.balanceOf(accounts[0]).call()
     assert.notEqual(DAICBal / 10 ** 8, 0)
@@ -128,7 +122,6 @@ describe("nERC20 contract", function () {
   it("Should supplyTokens value for accounts[1]", async () => {
     let mintAmount = BigNumber(1).shiftedBy(decimals).toString()
     await DAIcontract.methods.approve(nERC20Contract.address, mintAmount).send({ from: accounts[1] })
-    let balanceBefore = await nERC20Contract.balanceOf(accounts[1])
     // Increments one block
     await nERC20Contract.supplyTokens(mintAmount, { from: accounts[1] })
     blocksIncremented++
