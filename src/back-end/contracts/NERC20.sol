@@ -298,6 +298,7 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
                 amount
             );
 
+            decreaseBorrowInterestMapping(borrower, amount);
             // Convert to int256 for if statement check due to possibility
             // that the borrow amount - amount could be less than 0
             if (
@@ -307,7 +308,6 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
             ) {
                 liquidateNFT(borrower, amount);
             }
-            decreaseBorrowInterestMapping(borrower, amount);
             emit PayedOnLoan(borrower, amount);
         }
     }

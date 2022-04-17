@@ -128,7 +128,15 @@ describe("nERC20 contract", function () {
   })
 
   it("Should force liquidate accounts[0] using repayment liquidation", async () => {
-
+    await nERC20Contract.setMinimumDividor(10)
+    await DAIcontract.methods.approve(nERC20Contract.address, BigNumber(5).shiftedBy(decimals - 2).toString()).send({ from: accounts[0] })
+    await nERC20Contract.repayBorrowAmount(accounts[0], BigNumber(5).shiftedBy(decimals - 2).toString())
+    let nftPurchasePrice = await nERC20Contract.nftPurchasePrice(advancedCollectible.address, 0)
+    assert.equal(nftPurchasePrice.toString(), '400000000000000000')
+    await DAIcontract.methods.approve(nERC20Contract.address, BigNumber(4).shiftedBy(decimals + 1).toString()).send({ from: accounts[1] })
+    await nERC20Contract.sellLiquidNFT(accounts[1], nftPurchasePrice, advancedCollectible.address, 0)
+    let accountDoggieAmount = await advancedCollectible.balanceOf(accounts[1])
+    assert.equal(accountDoggieAmount.toString(), '1')
   })
 
 })
