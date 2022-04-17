@@ -62,6 +62,7 @@ contract InterestModel is Ownable {
         the supply of the current token.
     */
     function accrueInterest() internal returns (uint256 accruedInterestAmount) {
+        // Checks to ensure we can accrue interest
         if (currentState == AccrueInterestState.calculatingInterest) {
             return 0;
         }
@@ -72,26 +73,32 @@ contract InterestModel is Ownable {
             return 0;
         }
 
+        // calculation is delta block * interest rate
         uint256 currentSumOfInterestCalc = getCurrentSumOfInterestAmount(
             currentInterestRatePerBlock
         );
-        // Multiply 100 by average number of blocks a year to give appropriate amount of interest
-        currentSumOfInterest += currentSumOfInterestCalc;
+
+        // calculates accrued interest
         accruedInterestAmount =
             (currentSumOfInterestCalc * collateralToken.totalSupply()) /
             divideInterestPerBlock;
+
         addTotalUnclaimedTokens(accruedInterestAmount);
 
+        // calculation is delta block * interest rate
         uint256 currentSumOfBorrowInterestCalc = getCurrentSumOfInterestAmount(
             currentBorrowInterestRatePerBlock
         );
-        currentSumOfBorrowInterest += currentSumOfBorrowInterestCalc;
 
+        // calculates accrued borrow interest
         uint256 accruedBorrowInterestAmount = (currentSumOfBorrowInterestCalc *
             borrowAmount) / divideInterestPerBlock;
-        borrowAmountNotCompounded += accruedBorrowInterestAmount;
 
+        // Set the current state variables
         currentBlockNumber = block.number;
+        currentSumOfInterest += currentSumOfInterestCalc;
+        currentSumOfBorrowInterest += currentSumOfBorrowInterestCalc;
+        borrowAmountNotCompounded += accruedBorrowInterestAmount;
         currentState = AccrueInterestState.readyToCalculate;
     }
 
@@ -404,8 +411,12 @@ contract InterestModel is Ownable {
     /**
         Gets total amount interest for investors
     */
-    function totalAmountInvestedInterest() external view returns (uint256) {
-        return currentUnclaimedTokenAmount;
+    function totalAmountInvestedInterest() public view returns (uint256) {
+        return
+            currentUnclaimedTokenAmount +
+            (getCurrentSumOfInterestAmount(currentInterestRatePerBlock) *
+                collateralToken.totalSupply()) /
+            divideInterestPerBlock;
     }
 
     /**

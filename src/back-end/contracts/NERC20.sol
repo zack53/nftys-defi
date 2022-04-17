@@ -134,6 +134,7 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
     */
     function claimAccruedTokens() external isContractOperational {
         accrueInterest();
+        updateAccountInterestMapping();
         AccountInterest memory accountInterestMapping = AccountInterestMapping[
             msg.sender
         ];
