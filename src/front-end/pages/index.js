@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useWeb3React } from "@web3-react/core"
 import { process, EVMAddresses } from '../next.config'
 import { abi } from '../../back-end/artifacts/contracts/NERC20.sol/NERC20.json'
@@ -7,7 +7,10 @@ import { ethers } from "ethers"
 import { InjectedConnector } from "@web3-react/injected-connector"
 import { Button, Divider, Row, Col, Anchor } from 'antd'
 import { BigNumber } from "bignumber.js"
-const { WETH, ERC20ABI, DAI } = EVMAddresses
+const { WETH, ERC20ABI, DAI, NFTLoanAddress, UniSwapSingleSwapAddress } = EVMAddresses
+
+let tradeEthForDaiInput = React.createRef()
+let supplyTokensInput = React.createRef()
 
 export const injected = new InjectedConnector()
 
@@ -49,8 +52,7 @@ export default function Home() {
   let getDecimals = async () => {
     if (active) {
       const signer = provider.getSigner()
-      const contractAddress = process.env.ContractAddress
-      const contract = new ethers.Contract(contractAddress, abi, signer)
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
         let value = await contract.decimals()
         setDecimalValue(value)
@@ -65,8 +67,7 @@ export default function Home() {
   let getTotalSupply = async () => {
     if (active) {
       const signer = provider.getSigner()
-      const contractAddress = process.env.ContractAddress
-      const contract = new ethers.Contract(contractAddress, abi, signer)
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
         let value = await contract.totalSupply()
         value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
@@ -83,13 +84,13 @@ export default function Home() {
   let supplyTokens = async (amount) => {
     if (active) {
       const signer = provider.getSigner()
-      const contractAddress = process.env.ContractAddress
-      const contract = new ethers.Contract(contractAddress, abi, signer)
       const DAIContract = new ethers.Contract(DAI, ERC20ABI, signer)
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
         let decimalShiftAmount = BigNumber(amount).shiftedBy(18).toString()
-        await DAIContract.approve(contractAddress, decimalShiftAmount)
+        await DAIContract.approve(NFTLoanAddress, decimalShiftAmount)
         await contract.supplyTokens(decimalShiftAmount)
+        console.log('tokens supplied')
       } catch (error) {
         console.log(error)
       }
@@ -101,20 +102,17 @@ export default function Home() {
   let tradeEthForDai = async (amount) => {
     if (active) {
       const signer = provider.getSigner()
-      const contractAddress = process.env.ContractAddress
-      const contract = new ethers.Contract(contractAddress, abi, signer)
       const WETHContract = new ethers.Contract(WETH, ERC20ABI, signer)
-      const UniSwapContract = new ethers.Contract(process.env.UniSwapDeployedContract, uniSwapAbi, signer)
+      const UniSwapContract = new ethers.Contract(UniSwapSingleSwapAddress, uniSwapAbi, signer)
       try {
         if (amount >= 0) {
           let decimalShiftAmount = BigNumber(amount).shiftedBy(18).toString()
           await WETHContract.deposit({ value: decimalShiftAmount })
-          await WETHContract.approve(process.env.UniSwapDeployedContract, decimalShiftAmount)
-          await UniSwapContract.swapExactInputSingle(decimalShiftAmount, 0, WETH, DAI, 500)
+          await WETHContract.approve(UniSwapSingleSwapAddress, decimalShiftAmount)
+          await UniSwapContract.swapExactInputSingle(decimalShiftAmount, 0, WETH, DAI, 3000)
         } else {
           alert('Not a valid number')
         }
-        //await contract.supplyTokens(BigNumber(1).shiftedBy(18).toString())
       } catch (error) {
         console.log(error)
       }
@@ -167,19 +165,19 @@ export default function Home() {
       <Row>
         <Col span={10}></Col>
         <Col span={2}>
-          <Button type="secondary" onClick={() => tradeEthForDai(tradeAmount)}>Trade ETH for DAI</Button>
+          <Button type="secondary" onClick={() => tradeEthForDai(tradeEthForDaiInput.current.value)}>Trade ETH for DAI</Button>
         </Col>
         <Col>
-          <input style={{ marginLeft: 24 }} onChange={(e) => setTradeAmount(e.target.value)}></input>
+          <input style={{ marginLeft: 24 }} ref={tradeEthForDaiInput}></input>
         </Col>
       </Row>
       <Row>
         <Col span={10}></Col>
         <Col span={2}>
-          <Button type="secondary" onClick={() => supplyTokens(newSupplyAmount)}>Supply Tokens</Button>
+          <Button type="secondary" onClick={() => supplyTokens(supplyTokensInput.current.value)}>Supply Tokens</Button>
         </Col>
         <Col>
-          <input style={{ marginLeft: 24 }} onChange={(e) => setSupplyAmount(e.target.value)}></input>
+          <input style={{ marginLeft: 24 }} ref={supplyTokensInput}></input>
         </Col>
       </Row>
     </>
