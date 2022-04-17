@@ -1,5 +1,6 @@
-const { ethers, web3 } = require("hardhat")
-const { DAI, UniSwapV3RouterAddress } = require('../EVMAddresses/evmAddresses')
+const { ethers, web3, network } = require("hardhat")
+const { DAI } = config.EVMAddresses[network.name]
+const { UniSwapV3RouterAddress } = config.EVMAddresses
 
 /**
  * Script to deploy contracts using hardhat
