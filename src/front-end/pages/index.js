@@ -5,12 +5,10 @@ import { abi } from '../../back-end/artifacts/contracts/NERC20.sol/NERC20.json'
 import { abi as uniSwapAbi } from '../../back-end/artifacts/contracts/DeFi_Exchanges/UniSwapSingleSwap.sol/UniSwapSingleSwap.json'
 import { ethers } from "ethers"
 import { InjectedConnector } from "@web3-react/injected-connector"
-import { Button, Divider, Row, Col, Anchor } from 'antd'
+import { Button, Divider, Row, Col, Anchor, Space } from 'antd'
 import { BigNumber } from "bignumber.js"
 const { WETH, ERC20ABI, DAI, NFTLoanAddress, UniSwapSingleSwapAddress } = EVMAddresses
 
-let tradeEthForDaiInput = React.createRef()
-let supplyTokensInput = React.createRef()
 
 export const injected = new InjectedConnector()
 
@@ -20,8 +18,11 @@ export default function Home() {
   const [targetOffset, setTargetOffset] = useState(undefined);
   const [decimalValue, setDecimalValue] = useState()
   const [totalSupply, setTotalSupply] = useState()
-  const [newSupplyAmount, setSupplyAmount] = useState()
-  const [tradeAmount, setTradeAmount] = useState()
+  const [userSupply, setUserSupply] = useState()
+
+  let tradeEthForDaiInput = React.createRef()
+  let supplyTokensInput = React.createRef()
+  let withdrawTokensInput = React.createRef()
 
   useEffect(() => {
     setTargetOffset(window.innerHeight / 2)
@@ -81,6 +82,23 @@ export default function Home() {
     }
   }
 
+  let getUserSuppliedToken = async () => {
+    if (active) {
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      try {
+        let value = await contract.getAmountInvested()
+        value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
+        console.log(value)
+        setUserSupply(value.toString())
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+
   let supplyTokens = async (amount) => {
     if (active) {
       const signer = provider.getSigner()
@@ -90,7 +108,6 @@ export default function Home() {
         let decimalShiftAmount = BigNumber(amount).shiftedBy(18).toString()
         await DAIContract.approve(NFTLoanAddress, decimalShiftAmount)
         await contract.supplyTokens(decimalShiftAmount)
-        console.log('tokens supplied')
       } catch (error) {
         console.log(error)
       }
@@ -98,7 +115,20 @@ export default function Home() {
       console.log("Please install MetaMask")
     }
   }
-
+  let withdrawTokens = async (amount) => {
+    if (active) {
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      try {
+        let decimalShiftAmount = BigNumber(amount).shiftedBy(18).toString()
+        await contract.withdrawTokens(decimalShiftAmount)
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
   let tradeEthForDai = async (amount) => {
     if (active) {
       const signer = provider.getSigner()
@@ -126,8 +156,8 @@ export default function Home() {
         <Col span={7}></Col>
         <Col span={4}>
           <Anchor affix={true} targetOffset={targetOffset}>
-            <Link href="#read-functions" title="Read Functions" />
-            <Link href="#write-functions" title="Write Functions" />
+            <Link href="#read-functions" title="Contract State Read Functions" />
+            <Link href="#investment-functions" title="Investment Functions" />
           </Anchor>
         </Col>
         <Col>
@@ -141,8 +171,16 @@ export default function Home() {
             "Please install metamask"
           )}
         </Col>
+        <Col span={1}></Col>
+        <Col span={4}>
+          <h1 style={{ margin: 8, color: "grey" }}>NFT Loan Platform</h1>
+        </Col>
       </Row>
-      <Divider plain id='read-functions'>Read Functions</Divider>
+      <Row>
+        <Col span={8}></Col>
+        <Col span={12}><span>NFT Loan Contract on mumbai is located at address </span><a href="https://mumbai.polygonscan.com/address/0x7B427D442d5cCe45b9e6FB984206605B3c97f64D#code" target="_blank">0x7B427D442d5cCe45b9e6FB984206605B3c97f64D</a></Col>
+      </Row>
+      <Divider plain id='read-functions'>Contract State Read Functions</Divider>
       <Row>
         <Col span={10}></Col>
         <Col span={2}>
@@ -161,14 +199,23 @@ export default function Home() {
           <p>Value: {totalSupply}</p>
         </Col>
       </Row>
-      <Divider plain id='write-functions'>Write Functions</Divider>
+      <Divider plain id='investment-functions'>Investment Functions</Divider>
       <Row>
         <Col span={10}></Col>
         <Col span={2}>
-          <Button type="secondary" onClick={() => tradeEthForDai(tradeEthForDaiInput.current.value)}>Trade ETH for DAI</Button>
+          <Button type="secondary" onClick={() => getUserSuppliedToken()}>View Amount Invested</Button>
         </Col>
         <Col>
-          <input style={{ marginLeft: 24 }} ref={tradeEthForDaiInput}></input>
+          <p style={{ marginLeft: 24, marginTop: 5 }}>Value: {userSupply}</p>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={10}></Col>
+        <Col span={2}>
+          <Button type="secondary" onClick={() => tradeEthForDai(tradeEthForDaiInput.current.value)}>Trade MATIC for DAI</Button>
+        </Col>
+        <Col>
+          <input style={{ marginLeft: 24, marginBottom: 5, marginTop: 5 }} ref={tradeEthForDaiInput}></input>
         </Col>
       </Row>
       <Row>
@@ -177,7 +224,16 @@ export default function Home() {
           <Button type="secondary" onClick={() => supplyTokens(supplyTokensInput.current.value)}>Supply Tokens</Button>
         </Col>
         <Col>
-          <input style={{ marginLeft: 24 }} ref={supplyTokensInput}></input>
+          <input style={{ marginLeft: 24, marginBottom: 5, marginTop: 5 }} ref={supplyTokensInput}></input>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={10}></Col>
+        <Col span={2}>
+          <Button type="secondary" onClick={() => withdrawTokens(withdrawTokensInput.current.value)}>Withdraw Tokens</Button>
+        </Col>
+        <Col>
+          <input style={{ marginLeft: 24, marginBottom: 5, marginTop: 5 }} ref={withdrawTokensInput}></input>
         </Col>
       </Row>
     </>
