@@ -102,13 +102,13 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
             erc20Token.balanceOf(msg.sender) >= amount,
             "You do not have enough ERC20 token to make this transaction."
         );
+        _mint(msg.sender, amount);
         SafeERC20.safeTransferFrom(
             erc20Token,
             msg.sender,
             address(this),
             amount
         );
-        _mint(msg.sender, amount);
         emit InvestedToken(msg.sender, amount);
     }
 
@@ -124,8 +124,8 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
             "You do not have enough collateral tokens to withdraw this amount."
         );
 
-        SafeERC20.safeTransfer(erc20Token, msg.sender, amount);
         _burn(msg.sender, amount);
+        SafeERC20.safeTransfer(erc20Token, msg.sender, amount);
         emit WithdrawInvestedTokens(msg.sender, amount);
     }
 
@@ -227,6 +227,20 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
             "You do not have enough to repay all of your debt"
         );
 
+        // Remove borrow amount and delete mappings
+        decreaseBorrowAmount(fullAmountToRepay);
+        delete BorrowInterestMapping[borrower];
+        delete NFTOwnerMapping[borrower];
+
+        // Convert to int256 for checking due to possibility that the
+        // borrow amount - amount could be less than 0
+        if (
+            int256(nftOwnerInfo.nftCollateralAmount) / int256(minimumDividor) <
+            (int256(borrowInterestMapping.borrowAmount) - int256(erc20Balance))
+        ) {
+            liquidateNFT(borrower, erc20Balance);
+        }
+
         // Transfer ERC20 token to this address
         SafeERC20.safeTransferFrom(
             erc20Token,
@@ -241,20 +255,6 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
             borrower,
             nftOwnerInfo.tokenId
         );
-
-        // Remove borrow amount and delete mappings
-        decreaseBorrowAmount(fullAmountToRepay);
-        delete BorrowInterestMapping[borrower];
-        delete NFTOwnerMapping[borrower];
-
-        // Convert to int256 for checking due to possibility that the
-        // borrow amount - amount could be less than 0
-        if (
-            int256(nftOwnerInfo.nftCollateralAmount) / int256(minimumDividor) <
-            (int256(borrowInterestMapping.borrowAmount) - int256(erc20Balance))
-        ) {
-            liquidateNFT(borrower, erc20Balance);
-        }
 
         emit PayedOnLoan(borrower, fullAmountToRepay);
     }
@@ -291,13 +291,6 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
         ) {
             repayFullBorrowAmount(borrower);
         } else {
-            SafeERC20.safeTransferFrom(
-                erc20Token,
-                borrower,
-                address(this),
-                amount
-            );
-
             decreaseBorrowInterestMapping(borrower, amount);
             // Convert to int256 for if statement check due to possibility
             // that the borrow amount - amount could be less than 0
@@ -308,6 +301,12 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
             ) {
                 liquidateNFT(borrower, amount);
             }
+            SafeERC20.safeTransferFrom(
+                erc20Token,
+                borrower,
+                address(this),
+                amount
+            );
             emit PayedOnLoan(borrower, amount);
         }
     }
@@ -460,6 +459,7 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
             erc20Balance >= purchaseAmount,
             "You do not have enough ERC20 token to complete this purchase."
         );
+        delete NFTSalesMapping[address(nftContract)][tokenId];
         // Transfer money to this account before transfer of NFT to buyer
         SafeERC20.safeTransferFrom(
             erc20Token,
@@ -475,7 +475,6 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
             address(nftContract),
             tokenId
         );
-        delete NFTSalesMapping[address(nftContract)][tokenId];
     }
 
     /**
