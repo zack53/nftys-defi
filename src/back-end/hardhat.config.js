@@ -17,6 +17,10 @@ module.exports = {
   },
   networks: {
     hardhat: {
+      mining: {
+        auto: false,
+        interval: [7000, 14000]
+      },
       forking: {
         url: process.env.MUMBAI_URL,
       },
