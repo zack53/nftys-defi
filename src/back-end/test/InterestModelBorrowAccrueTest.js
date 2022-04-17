@@ -6,6 +6,7 @@ const { DAI, WTOKEN, AdvancedCollectibleAddress } = config.EVMAddresses[network.
 const { ERC20ABI, UniSwapV3RouterAddress } = config.EVMAddresses
 const { wrapToken } = require('../util/TokenUtil')
 const { BigNumber } = require('bignumber.js')
+BigNumber.config({ ROUNDING_MODE: BigNumber.ROUND_DOWN })
 //Creates a truffe contract from compiled artifacts.
 const nERC20 = artifacts.require("NERC20")
 const UniSwapSingleSwap = artifacts.require("UniSwapSingleSwap")
@@ -23,6 +24,11 @@ let borrowInterestDelta
 let blocksIncrementedBorrowCheck = 0
 let pairFee = 3000
 let advancedCollectible
+let currentBorrowInterest = 12
+const divideInterestPerBlock = 100 * 2628000
+let deltaEstimate
+let accountTwoStartingBlock
+
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("nERC20 contract", function () {
 
@@ -72,7 +78,6 @@ describe("nERC20 contract", function () {
   it("Should supplyTokens value for accounts[1]", async () => {
     let mintAmount = BigNumber(2).shiftedBy(decimals).toString()
     await DAIcontract.methods.approve(nERC20Contract.address, mintAmount).send({ from: accounts[1] })
-    let balanceBefore = await nERC20Contract.balanceOf(accounts[1])
     // Increments one block
     await nERC20Contract.supplyTokens(mintAmount, { from: accounts[1] })
     blocksIncremented++
@@ -80,5 +85,50 @@ describe("nERC20 contract", function () {
     assert.equal(mintAmount, balanceAfter.toString())
   })
 
+  it("Should borrow from accounts[0]", async () => {
+    let borrowAmount = BigNumber(1).shiftedBy(decimals)
+    let DAICAccountBalBefore = await DAIcontract.methods.balanceOf(accounts[0]).call()
+    await advancedCollectible.approve(nERC20Contract.address, 0, { from: accounts[0] })
+    await nERC20Contract.borrowTokens(accounts[0], borrowAmount.toString(), borrowAmount.multipliedBy(4).toString(), advancedCollectible.address, 0)
+    await web3.eth.sendTransaction({ from: accounts[1], to: accounts[2], value: BigNumber(1).shiftedBy(8).toString() })
+    blocksIncrementedBorrowCheck++
+    borrowInterestDelta = await nERC20Contract.totalBorrowedInterest();
+    // '45662100456' = borrowAmount*blocksIncrementedBorrowCheck*currentBorrowInterest/divideInterestPerBlock
+    deltaEstimate = BigNumber(borrowAmount * blocksIncrementedBorrowCheck * currentBorrowInterest / divideInterestPerBlock).toFixed(0)
+    assert.equal(borrowInterestDelta.toString(), deltaEstimate)
+    let DAICAccountBalAfter = await DAIcontract.methods.balanceOf(accounts[0]).call()
+    assert.equal(DAICAccountBalAfter - DAICAccountBalBefore, borrowAmount)
+  })
+
+  it("Should borrow from accounts[2]", async () => {
+    let borrowAmount = BigNumber(1).shiftedBy(decimals)
+    let DAICAccountBalBefore = await DAIcontract.methods.balanceOf(accounts[2]).call()
+    await advancedCollectible.approve(nERC20Contract.address, 2, { from: accounts[2] })
+    blocksIncrementedBorrowCheck++
+    await nERC20Contract.borrowTokens(accounts[2], borrowAmount.toString(), borrowAmount.multipliedBy(4).toString(), advancedCollectible.address, 2)
+    blocksIncrementedBorrowCheck++
+    accountTwoStartingBlock = blocksIncrementedBorrowCheck
+    let DAICAccountBalAfter = await DAIcontract.methods.balanceOf(accounts[2]).call()
+    assert.equal(DAICAccountBalAfter - DAICAccountBalBefore, borrowAmount)
+  })
+
+  it("Should repay some on accounts[0] and have accurate interest for both accounts", async () => {
+    let totalRepaymentAmount = await nERC20Contract.getBorrowedRepayAmount(accounts[0])
+    let repaymentAmount = BigNumber(5).shiftedBy(decimals - 1).toString()
+    await DAIcontract.methods.approve(nERC20Contract.address, repaymentAmount).send({ from: accounts[0] })
+    blocksIncrementedBorrowCheck++
+    await nERC20Contract.repayBorrowAmount(accounts[0], repaymentAmount)
+    blocksIncrementedBorrowCheck++
+    let account2DeltaBlock = blocksIncrementedBorrowCheck - accountTwoStartingBlock
+    let totalRepaymentAmountAfter = await nERC20Contract.getBorrowedRepayAmount(accounts[0])
+    let currentBorrrowInterest = BigNumber(await nERC20Contract.totalBorrowedInterest())
+    assert.approximately(currentBorrrowInterest.dividedBy(account2DeltaBlock).toNumber(), parseInt(deltaEstimate), 10)
+    assert.approximately(BigNumber(totalRepaymentAmountAfter).minus(BigNumber(totalRepaymentAmount).plus(deltaEstimate).minus(repaymentAmount)).toNumber(), parseInt(deltaEstimate), 10)
+
+  })
+
+  it("Should force liquidate accounts[0] using repayment liquidation", async () => {
+
+  })
 
 })

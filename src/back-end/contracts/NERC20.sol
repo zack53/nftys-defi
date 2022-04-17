@@ -297,16 +297,18 @@ contract NERC20 is ERC20, InterestModel, IERC721Receiver {
                 address(this),
                 amount
             );
+
+            // Convert to int256 for if statement check due to possibility
+            // that the borrow amount - amount could be less than 0
+            if (
+                int256(nftOwnerInfo.nftCollateralAmount) /
+                    int256(minimumDividor) <
+                (int256(borrowInterestMapping.borrowAmount) - int256(amount))
+            ) {
+                liquidateNFT(borrower, amount);
+            }
             decreaseBorrowInterestMapping(borrower, amount);
             emit PayedOnLoan(borrower, amount);
-        }
-        // Convert to int256 for if statement check due to possibility
-        // that the borrow amount - amount could be less than 0
-        if (
-            int256(nftOwnerInfo.nftCollateralAmount) / int256(minimumDividor) <
-            (int256(borrowInterestMapping.borrowAmount) - int256(amount))
-        ) {
-            liquidateNFT(borrower, amount);
         }
     }
 

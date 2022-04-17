@@ -374,13 +374,6 @@ contract InterestModel is Ownable {
     }
 
     /**
-        Get current borrowAmount
-    */
-    function totalAmountBorrowed() external view returns (uint256) {
-        return borrowAmount;
-    }
-
-    /**
         Increase the borrowAmount on contract
     */
     function increaseBorrowAmount(uint256 amount) internal {
@@ -395,10 +388,21 @@ contract InterestModel is Ownable {
     }
 
     /**
+        Get current borrowAmount
+    */
+    function totalAmountBorrowed() external view returns (uint256) {
+        return borrowAmount;
+    }
+
+    /**
         Function to view current outstanding borrowed interest
     */
     function totalBorrowedInterest() external view returns (uint256) {
-        return borrowAmountNotCompounded;
+        return
+            borrowAmountNotCompounded +
+            (getCurrentSumOfInterestAmount(currentBorrowInterestRatePerBlock) *
+                borrowAmount) /
+            divideInterestPerBlock;
     }
 
     /**

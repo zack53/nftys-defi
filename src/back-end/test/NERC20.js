@@ -353,7 +353,6 @@ describe("nERC20 contract", function () {
   it("Account 1 should be able to purchase the NFT that has been liquidated", async () => {
     let nftPurchasePrice = await nERC20Contract.nftPurchasePrice(advancedCollectible.address, 2)
     assert.equal(nftPurchasePrice.toString(), '400000000000000000')
-    let daiBal = await DAIcontract.methods.balanceOf(accounts[1]).call()
     await DAIcontract.methods.approve(nERC20Contract.address, BigNumber(4).shiftedBy(decimals + 1).toString()).send({ from: accounts[1] })
     await nERC20Contract.sellLiquidNFT(accounts[1], nftPurchasePrice, advancedCollectible.address, 2)
     let accountDoggieAmount = await advancedCollectible.balanceOf(accounts[1])
