@@ -16,13 +16,19 @@ export default function Home() {
   const [hasMetamask, setHasMetamask] = useState(false)
   const { Link } = Anchor
   const [targetOffset, setTargetOffset] = useState(undefined);
+
+  // Overal contract state read function 
   const [decimalValue, setDecimalValue] = useState()
   const [totalSupply, setTotalSupply] = useState()
   const [totalInterest, setTotalInterest] = useState()
   const [totalBorrowAmount, setTotalBorrowAmount] = useState()
   const [totalBorrowedInterest, setTotalBorrowInterest] = useState()
+
+  // Investment section state variables
   const [userSupply, setUserSupply] = useState()
   const [userInterestEarned, setInterestEarned] = useState()
+
+  // Borrow section state variables
   const [userAmountBorrowed, setUserAmountBorrowed] = useState()
   const [userBorrowedInterest, setBorrowedInterest] = useState()
   const [userBorrowRepayAmount, setBorrowRepayAmount] = useState()
@@ -97,8 +103,8 @@ export default function Home() {
       const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
         let value = await contract.totalAmountInvestedInterest()
-        value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
-        setTotalInterest(value.toString())
+        value = (value == '0') ? '0' : BigNumber(value.toString()).shiftedBy(-18).toFixed(18)
+        setTotalInterest(value)
       } catch (error) {
         console.log(error)
       }
@@ -356,11 +362,11 @@ export default function Home() {
         </Col>
       </Row>
       <Row>
-        <Col span={8}></Col>
+        <Col span={7}></Col>
         <Col span={12}><span>NFT Loan Contract on Mumbai is located at address </span><a href="https://mumbai.polygonscan.com/address/0x7B427D442d5cCe45b9e6FB984206605B3c97f64D#code" target="_blank">0x7B427D442d5cCe45b9e6FB984206605B3c97f64D</a><span> - GitHub </span><a href="https://github.com/zack53/nftys-defi" target="_blank">Location</a></Col>
       </Row>
       <Row>
-        <Col span={8}></Col>
+        <Col span={7}></Col>
         <Col span={12}><span>NFT Mint Contract on Mumbai is located at address </span><a href="https://mumbai.polygonscan.com/address/0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5#code" target="_blank">0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5</a><span> - GitHub </span><a href="https://github.com/zack53/nft-from-scratch" target="_blank">Location</a></Col>
       </Row>
       <Divider plain id='read-functions'>Contract State Read Functions</Divider>
