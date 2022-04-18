@@ -5,12 +5,12 @@ import { abi } from '../../back-end/artifacts/contracts/NERC20.sol/NERC20.json'
 import { abi as uniSwapAbi } from '../../back-end/artifacts/contracts/DeFi_Exchanges/UniSwapSingleSwap.sol/UniSwapSingleSwap.json'
 import { ethers } from "ethers"
 import { InjectedConnector } from "@web3-react/injected-connector"
-import { Button, Divider, Row, Col, Anchor, Space } from 'antd'
+import { Button, Divider, Row, Col, Anchor, Form, Input, Radio } from 'antd'
 import { BigNumber } from "bignumber.js"
 const { WETH, ERC20ABI, DAI, NFTLoanAddress, UniSwapSingleSwapAddress } = EVMAddresses
 
 
-export const injected = new InjectedConnector()
+export const injected = new InjectedConnector({ supportedChainIds: [31337, 80001] })
 
 export default function Home() {
   const [hasMetamask, setHasMetamask] = useState(false)
@@ -20,10 +20,16 @@ export default function Home() {
   const [totalSupply, setTotalSupply] = useState()
   const [userSupply, setUserSupply] = useState()
   const [userInterestEarned, setInterestEarned] = useState()
+
   let tradeEthForDaiInput = React.createRef()
   let supplyTokensInput = React.createRef()
   let withdrawTokensInput = React.createRef()
-  let borrowDaiInput = React.createRef()
+
+  const [form] = Form.useForm();
+  const [fields, setFields] = useState([{}])
+  let borrowDaiAmountInput = React.createRef()
+  let contractAddressInput = React.createRef()
+  let tokenIdInput = React.createRef()
 
   useEffect(() => {
     setTargetOffset(window.innerHeight / 2)
@@ -133,7 +139,7 @@ export default function Home() {
       const DAIContract = new ethers.Contract(DAI, ERC20ABI, signer)
       const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
-        if (amount >= 0) {
+        if (amount > 0) {
           let decimalShiftAmount = BigNumber(amount).shiftedBy(18).toString()
           await DAIContract.approve(NFTLoanAddress, decimalShiftAmount)
           await contract.supplyTokens(decimalShiftAmount)
@@ -152,7 +158,7 @@ export default function Home() {
       const signer = provider.getSigner()
       const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
-        if (amount >= 0) {
+        if (amount > 0) {
           let decimalShiftAmount = BigNumber(amount).shiftedBy(18).toString()
           await contract.withdrawTokens(decimalShiftAmount)
         } else {
@@ -171,7 +177,7 @@ export default function Home() {
       const WETHContract = new ethers.Contract(WETH, ERC20ABI, signer)
       const UniSwapContract = new ethers.Contract(UniSwapSingleSwapAddress, uniSwapAbi, signer)
       try {
-        if (amount >= 0) {
+        if (amount > 0) {
           let decimalShiftAmount = BigNumber(amount).shiftedBy(18).toString()
           await WETHContract.deposit({ value: decimalShiftAmount })
           await WETHContract.approve(UniSwapSingleSwapAddress, decimalShiftAmount)
@@ -187,14 +193,16 @@ export default function Home() {
     }
   }
 
-  let borrowDai = async (amount) => {
+  let borrowDai = async ({ borrowAmount, nftAddress, tokenId }) => {
     if (active) {
       const signer = provider.getSigner()
       const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
-        if (amount >= 0) {
-          let decimalShiftAmount = BigNumber(amount).shiftedBy(18).toString()
-          await contract.borrowTokens(decimalShiftAmount)
+        console.log(borrowAmount)
+        if (borrowAmount > 0 && tokenId >= 0) {
+          let decimalShiftAmount = BigNumber(borrowAmount.toString()).shiftedBy(18).toString()
+          console.log(account, decimalShiftAmount, '4', nftAddress, tokenId)
+          //await contract.borrowTokens(account, decimalShiftAmount, '4', nftAddress, tokenId)
         } else {
           alert('Not a valid number')
         }
@@ -205,6 +213,24 @@ export default function Home() {
       console.log("Please install MetaMask")
     }
   }
+
+  const formItemLayout =
+  {
+    labelCol: {
+      span: 6,
+    },
+    wrapperCol: {
+      span: 20,
+    },
+  }
+  const buttonItemLayout =
+  {
+    wrapperCol: {
+      span: 14,
+      offset: 9,
+    },
+  }
+
   return (
     <>
       <Row>
@@ -317,15 +343,31 @@ export default function Home() {
       </Row>
       <Divider plain id="borrow-functions">Borrow Functions</Divider>
       <Row>
-        <Col span={6}></Col>
-        <Col span={4}><span >Borrow Amount:</span><input style={{ marginLeft: 5, marginBottom: 5, marginTop: 5 }} ref={borrowDaiInput}></input></Col>
-        <Col span={4}><span >NFT Contract:</span><input style={{ marginLeft: 5, marginBottom: 5, marginTop: 5 }} ref={borrowDaiInput}></input></Col>
-        <Col span={4}><span >NFT Token Id:</span><input style={{ marginLeft: 5, marginBottom: 5, marginTop: 5 }} ref={borrowDaiInput}></input></Col>
-      </Row>
-      <Row>
-        <Col span={11}></Col>
-        <Col span={2}>
-          <Button type="primary" style={{ marginLeft: 20, marginTop: 5 }} onClick={() => borrowDai(borrowDaiInput.current.value)}>Borrow DAI</Button>
+        <Col span={9}></Col>
+        <Col span={6}>
+          <Form
+            {...formItemLayout}
+            layout='horizontal'
+            form={form}
+            style={{ marginTop: 10 }}
+            ref={borrowDaiAmountInput}
+            name="control-ref"
+            onFinish={borrowDai}
+            initialValues={{ remember: true }}
+          >
+            <Form.Item label="Borrow Amount" name="borrowAmount" rules={[{ required: true, message: 'Please input borrow amount' }]}>
+              <Input placeholder="0" />
+            </Form.Item>
+            <Form.Item label="NFT Address" name="nftAddress" rules={[{ required: true, message: 'Please input NFT address' }]} initialValue="0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5">
+              <Input defaultValue="0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5" />
+            </Form.Item>
+            <Form.Item label="Token Id" name="tokenId" rules={[{ required: true, message: 'Please input token id' }]}>
+              <Input placeholder="0" />
+            </Form.Item>
+            <Form.Item {...buttonItemLayout}>
+              <Button type="primary" htmlType='submit'>Borrow DAI</Button>
+            </Form.Item>
+          </Form>
         </Col>
       </Row>
     </>
