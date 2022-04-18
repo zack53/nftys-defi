@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { useWeb3React } from "@web3-react/core"
-import { EVMAddresses } from '../next.config'
+import { EVMAddresses, IPFSTokenURI } from '../next.config'
 import { abi } from '../../back-end/artifacts/contracts/NERC20.sol/NERC20.json'
 import { abi as uniSwapAbi } from '../../back-end/artifacts/contracts/DeFi_Exchanges/UniSwapSingleSwap.sol/UniSwapSingleSwap.json'
+import { abi as advancedCollectibleABI } from '../../back-end/artifacts/contracts/NFT/AdvancedCollectible.sol/AdvancedCollectible.json'
 import { ethers } from "ethers"
 import { InjectedConnector } from "@web3-react/injected-connector"
 import { Button, Divider, Row, Col, Anchor, Form, Input } from 'antd'
 import { BigNumber } from "bignumber.js"
-const { WETH, ERC20ABI, DAI, NFTLoanAddress, UniSwapSingleSwapAddress } = EVMAddresses
+const { WETH, ERC20ABI, DAI, NFTLoanAddress, UniSwapSingleSwapAddress, AdvancedCollectibleAddress } = EVMAddresses
 
 
 export const injected = new InjectedConnector({ supportedChainIds: [31337, 80001] })
@@ -28,6 +29,15 @@ export default function Home() {
   const [userSupply, setUserSupply] = useState()
   const [userInterestEarned, setInterestEarned] = useState()
 
+  // Mint NFT section state variables
+  const [userDogBalance, setUserDogBalance] = useState()
+  const [mintRequestId, setRequestId] = useState()
+  const [requestIdToTokenId, setRequestIdToTokenId] = useState()
+  const [tokenIdToBreed, setTokenIdToBreed] = useState()
+  const [doggieTokenURI, setViewDoggieTokenURI] = useState()
+  const [openSeaURL, setOpenSeaURL] = useState()
+
+
   // Borrow section state variables
   const [userAmountBorrowed, setUserAmountBorrowed] = useState()
   const [userBorrowedInterest, setBorrowedInterest] = useState()
@@ -37,6 +47,10 @@ export default function Home() {
   let tradeEthForDaiInput = React.createRef()
   let supplyTokensInput = React.createRef()
   let withdrawTokensInput = React.createRef()
+  let requestIdInput = React.createRef()
+  let tokenIdDogBreedInput = React.createRef()
+  let tokenIdSetURIInput = React.createRef()
+  let dogURLInput = React.createRef()
 
   const [form] = Form.useForm();
 
@@ -68,8 +82,7 @@ export default function Home() {
 
   let getDecimals = async () => {
     if (active) {
-      const signer = provider.getSigner()
-      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
       try {
         let value = await contract.decimals()
         setDecimalValue(value)
@@ -83,8 +96,7 @@ export default function Home() {
 
   let getTotalSupply = async () => {
     if (active) {
-      const signer = provider.getSigner()
-      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
       try {
         let value = await contract.totalSupply()
         value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
@@ -99,8 +111,7 @@ export default function Home() {
 
   let getTotalInterest = async () => {
     if (active) {
-      const signer = provider.getSigner()
-      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
       try {
         let value = await contract.totalAmountInvestedInterest()
         value = (value == '0') ? '0' : BigNumber(value.toString()).shiftedBy(-18).toFixed(18)
@@ -115,8 +126,7 @@ export default function Home() {
 
   let getTotalBorrowAmount = async () => {
     if (active) {
-      const signer = provider.getSigner()
-      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
       try {
         let value = await contract.totalAmountBorrowed()
         value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
@@ -131,8 +141,7 @@ export default function Home() {
 
   let getTotalBorrowInterest = async () => {
     if (active) {
-      const signer = provider.getSigner()
-      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
       try {
         let value = await contract.totalBorrowedInterest()
         value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
@@ -147,8 +156,7 @@ export default function Home() {
 
   let getUserSuppliedToken = async () => {
     if (active) {
-      const signer = provider.getSigner()
-      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
       try {
         let value = await contract.getAmountInvested()
         value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
@@ -163,8 +171,7 @@ export default function Home() {
 
   let getUserInterestEarned = async () => {
     if (active) {
-      const signer = provider.getSigner()
-      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
       try {
         let value = BigNumber((await contract.viewAccruedTokensAmount()).toString())
         setInterestEarned((value == 0) ? 0 : value.shiftedBy(-18).toFixed(18))
@@ -273,8 +280,7 @@ export default function Home() {
 
   let getUserAmountBorrowed = async () => {
     if (active) {
-      const signer = provider.getSigner()
-      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
       try {
         let value = BigNumber((await contract.getAmountBorrowed(account)).toString())
         setUserAmountBorrowed((value == 0) ? 0 : value.shiftedBy(-18).toFixed(18))
@@ -288,8 +294,7 @@ export default function Home() {
 
   let getUserBorrowedInterest = async () => {
     if (active) {
-      const signer = provider.getSigner()
-      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
       try {
         let value = BigNumber((await contract.viewBorrowAccruedTokensAmount(account)).toString())
         setBorrowedInterest((value == 0) ? 0 : value.shiftedBy(-18).toFixed(18))
@@ -303,11 +308,142 @@ export default function Home() {
 
   let getUserBorrowRepayAmount = async () => {
     if (active) {
-      const signer = provider.getSigner()
-      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
       try {
         let value = BigNumber((await contract.getBorrowedRepayAmount(account)).toString())
         setBorrowRepayAmount((value == 0) ? 0 : value.shiftedBy(-18).toFixed(18))
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+
+  let getDogBalance = async () => {
+    if (active) {
+      const contract = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, provider)
+      try {
+        let value = BigNumber((await contract.balanceOf(account)).toString())
+        setUserDogBalance(value.toString())
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+
+  let mintDoggieNFT = async () => {
+    if (active) {
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, signer)
+      try {
+        eventRequestedCollectible()
+        await contract.CreateDoggies('')
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+
+  let eventRequestedCollectible = async () => {
+    if (active) {
+      const contract = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, provider)
+      try {
+        contract.on('requestedCollectible', (minter, requestId) => {
+          if (minter == account) {
+            console.log(minter, requestId)
+            setRequestId(requestId)
+            eventMintCollectible(requestId)
+          }
+        })
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+
+  let eventMintCollectible = async (origRequestId) => {
+    if (active) {
+      const contract = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, provider)
+      try {
+        contract.on('mintCollectible', (requestId, tokenId, breed) => {
+          if (origRequestId == requestId) {
+            console.log(requestId, tokenId, breed)
+            setDoggieTokenURI(tokenId)
+          }
+        })
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+  let setDoggieTokenURI = async (tokenId) => {
+    if (active) {
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, signer)
+      try {
+        let breed = BigNumber(await contract.tokenIdToBreed(tokenId)).toString()
+        console.log(IPFSTokenURI[breed])
+        console.log(tokenId, breed)
+        await contract.setTokenURI(tokenId, IPFSTokenURI[breed])
+        await displayOpenSeaURL()
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+
+  let displayOpenSeaURL = async (tokenId) => {
+    let urlString = 'https://testnets.opensea.io/assets/mumbai/0xae87e56a9df1baf99f77b7a75f6efdfd03bc41e5/'
+    setOpenSeaURL(urlString + tokenId)
+
+  }
+
+  let getDogTokenId = async (requestId) => {
+    if (active) {
+      const contract = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, provider)
+      try {
+        let results = await contract.requestIdToTokenId(requestId)
+        setRequestIdToTokenId(results.toString())
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+
+  let getDogBreed = async (tokenId) => {
+    let dogBreedMapping = { 0: 'PUG', 1: 'SHIBA INU', 2: 'ST BERNARD' }
+    if (active) {
+      const contract = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, provider)
+      try {
+        let results = BigNumber(await contract.tokenIdToBreed(tokenId))
+        setTokenIdToBreed(dogBreedMapping[results.toNumber()])
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+
+  let viewDoggieTokenURI = async (tokenId) => {
+    if (active) {
+      const contract = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, provider)
+      try {
+        let results = await contract.tokenURI(tokenId)
+        setViewDoggieTokenURI(results)
       } catch (error) {
         console.log(error)
       }
@@ -336,8 +472,7 @@ export default function Home() {
   return (
     <>
       <Row>
-        <Col span={5}></Col>
-        <Col span={4}>
+        <Col span={4} offset={3}>
           <Anchor affix={true} targetOffset={targetOffset}>
             <Link href="#read-functions" title="Contract State Read Functions" />
             <Link href="#investment-functions" title="Investment Functions" />
@@ -362,12 +497,10 @@ export default function Home() {
         </Col>
       </Row>
       <Row>
-        <Col span={7}></Col>
-        <Col span={12}><span>NFT Loan Contract on Mumbai is located at address </span><a href="https://mumbai.polygonscan.com/address/0x7B427D442d5cCe45b9e6FB984206605B3c97f64D#code" target="_blank">0x7B427D442d5cCe45b9e6FB984206605B3c97f64D</a><span> - GitHub </span><a href="https://github.com/zack53/nftys-defi" target="_blank">Location</a></Col>
+        <Col span={24} style={{ textAlign: "center" }}><span>NFT Loan Contract on Mumbai is located at address </span><a href="https://mumbai.polygonscan.com/address/0x7B427D442d5cCe45b9e6FB984206605B3c97f64D#code" target="_blank">0x7B427D442d5cCe45b9e6FB984206605B3c97f64D</a><span> - GitHub </span><a href="https://github.com/zack53/nftys-defi" target="_blank">Location</a></Col>
       </Row>
       <Row>
-        <Col span={7}></Col>
-        <Col span={12}><span>NFT Mint Contract on Mumbai is located at address </span><a href="https://mumbai.polygonscan.com/address/0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5#code" target="_blank">0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5</a><span> - GitHub </span><a href="https://github.com/zack53/nft-from-scratch" target="_blank">Location</a></Col>
+        <Col span={24} style={{ textAlign: "center" }}><span>NFT Mint Contract on Mumbai is located at address </span><a href="https://mumbai.polygonscan.com/address/0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5#code" target="_blank">0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5</a><span> - GitHub </span><a href="https://github.com/zack53/nft-from-scratch" target="_blank">Location</a></Col>
       </Row>
       <Divider plain id='read-functions'>Contract State Read Functions</Divider>
       <Row>
@@ -435,9 +568,8 @@ export default function Home() {
         </Col>
       </Row>
       <Row>
-        <Col span={11}></Col>
-        <Col span={2}>
-          <Button type="primary" style={{ marginBottom: 8, float: "right" }} onClick={() => claimAccruedTokens()} >Claim Accrued Tokens</Button>
+        <Col span={24} offset={11}>
+          <Button type="primary" style={{ marginBottom: 10 }} onClick={() => claimAccruedTokens()} >Claim Accrued Tokens</Button>
         </Col>
       </Row>
       <Row>
@@ -469,9 +601,84 @@ export default function Home() {
       </Row>
       <Divider plain id="mint-nft-functions">Mint NFT Functions</Divider>
       <Row>
-        <Col span={10}></Col>
-        <Col>
-          <span>Mint NFT to be able to provide collateral for loan process.</span>
+        <Col span={24} style={{ textAlign: "center" }}>
+          <span>Mint <a href='https://testnets.opensea.io/collection/doggies-vscmbqeyjs' target={'_blank'}>Doggie NFT</a> to be able to provide collateral for loan process.</span>
+          <p>Future improvement would be to implement the OpenSea API to get latest token price and allow for any NFT to be used for collateral.</p>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={2} offset={10}>
+          <Button type="secondary" onClick={() => getDogBalance()} style={{ float: "right" }}>View Owned Doggies</Button>
+        </Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <p>Value: {userDogBalance}</p>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={24} offset={11} style={{ marginBottom: 10 }}>
+          <Button type="primary" onClick={() => mintDoggieNFT()} >Mint Random Dog NFT</Button>
+        </Col>
+      </Row>
+      <Row style={{ marginBottom: 10 }}>
+        <Col span={8} offset={4} style={{ textAlign: "right" }}>
+          <span>Mint Request Id for ChainLink Random number:</span>
+        </Col>
+        <Col span={2} style={{ marginLeft: 20 }}>
+          <span>{mintRequestId}</span>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={12} style={{ textAlign: "right", marginBottom: 5 }}>
+          <span>Doggies newly Minted OpenSea NFT URL: </span>
+        </Col>
+        <Col style={{ marginLeft: 20 }}>
+          <a href={openSeaURL} target={'_blank'}>{openSeaURL}</a>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={2} offset={9}>
+          <Button type="secondary" onClick={() => getDogTokenId(requestIdInput.current.value)} style={{ float: "right", marginTop: 5 }}>View Minted Dog Token Id</Button>
+        </Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <input placeholder='Request Id' ref={requestIdInput}></input>
+        </Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <p>Token Id: {requestIdToTokenId}</p>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={2} offset={9}>
+          <Button type="secondary" onClick={() => getDogBreed(tokenIdDogBreedInput.current.value)} style={{ float: "right", marginTop: 5 }}>View Dog Breed</Button>
+        </Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <input placeholder='Token Id' ref={tokenIdDogBreedInput}></input>
+        </Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <p>Breed: {tokenIdToBreed}</p>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={2} offset={9}>
+          <Button type="secondary" onClick={() => viewDoggieTokenURI(dogURLInput.current.value)} style={{ float: "right", marginTop: 5 }}>View Doggie Token URI</Button>
+        </Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <input placeholder='Token Id' ref={dogURLInput}></input>
+        </Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <p>URI: {doggieTokenURI}</p>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={4} offset={10}>
+          <span>The token URI should be set automatically during the minting process once the random number is generated, but the button below will manually set the token URI if you aren't seeing the tokenURI after 80 seconds or so.</span>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={2} offset={10}>
+          <Button type="primary" onClick={() => setDoggieTokenURI(tokenIdSetURIInput.current.value)} style={{ float: "right", marginTop: 5 }}>Set Doggie Token URI</Button>
+        </Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <input placeholder='Token Id' ref={tokenIdSetURIInput}></input>
         </Col>
       </Row>
       <Divider plain id="borrow-functions">Borrow Functions</Divider>
