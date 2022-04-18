@@ -17,6 +17,10 @@ module.exports = {
   },
   networks: {
     hardhat: {
+      mining: {
+        auto: false,
+        interval: [7000, 14000]
+      },
       forking: {
         url: process.env.MUMBAI_URL,
       },
@@ -59,7 +63,9 @@ module.exports = {
       WETH: "0xA6FA4fB5f76172d178d61B04b0ecd319C5d1C0aa",
       WBTC: "0x0d787a4a1548f673ed375445535a6c7A1EE56180",
       fee: "100000000000000",
-      AdvancedCollectibleAddress: "0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5"
+      AdvancedCollectibleAddress: "0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5",
+      NFTLoanAddress: "0x7B427D442d5cCe45b9e6FB984206605B3c97f64D",
+      UniSwapSingleSwapAddress: "0x76473dfB8817E056FA0952c7620d88B65Ad8C0B8"
     },
     polygon_mainnet: {
       VRFCoordniator: "0x3d2341ADb2D31f1c5530cDC622016af293177AE0",
@@ -80,7 +86,9 @@ module.exports = {
       WETH: "0xA6FA4fB5f76172d178d61B04b0ecd319C5d1C0aa",
       WBTC: "0x0d787a4a1548f673ed375445535a6c7A1EE56180",
       fee: "100000000000000",
-      AdvancedCollectibleAddress: "0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5"
+      AdvancedCollectibleAddress: "0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5",
+      NFTLoanAddress: "0x7B427D442d5cCe45b9e6FB984206605B3c97f64D",
+      UniSwapSingleSwapAddress: "0x76473dfB8817E056FA0952c7620d88B65Ad8C0B8"
     },
     localhost: {
       VRFCoordniator: "0x8C7382F9D8f56b33781fE506E897a4F1e2d17255",
@@ -91,7 +99,9 @@ module.exports = {
       WETH: "0xA6FA4fB5f76172d178d61B04b0ecd319C5d1C0aa",
       WBTC: "0x0d787a4a1548f673ed375445535a6c7A1EE56180",
       fee: "100000000000000",
-      AdvancedCollectibleAddress: "0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5"
+      AdvancedCollectibleAddress: "0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5",
+      NFTLoanAddress: "0x7B427D442d5cCe45b9e6FB984206605B3c97f64D",
+      UniSwapSingleSwapAddress: "0x76473dfB8817E056FA0952c7620d88B65Ad8C0B8"
     },
     UniSwapV3RouterAddress: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
     ERC20ABI: [{ "constant": true, "inputs": [], "name": "name", "outputs": [{ "name": "", "type": "string" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [{ "name": "guy", "type": "address" }, { "name": "wad", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "totalSupply", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [{ "name": "src", "type": "address" }, { "name": "dst", "type": "address" }, { "name": "wad", "type": "uint256" }], "name": "transferFrom", "outputs": [{ "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": false, "inputs": [{ "name": "wad", "type": "uint256" }], "name": "withdraw", "outputs": [], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "decimals", "outputs": [{ "name": "", "type": "uint8" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [{ "name": "", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "", "type": "string" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [{ "name": "dst", "type": "address" }, { "name": "wad", "type": "uint256" }], "name": "transfer", "outputs": [{ "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": false, "inputs": [], "name": "deposit", "outputs": [], "payable": true, "stateMutability": "payable", "type": "function" }, { "constant": true, "inputs": [{ "name": "", "type": "address" }, { "name": "", "type": "address" }], "name": "allowance", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" }, { "payable": true, "stateMutability": "payable", "type": "fallback" }, { "anonymous": false, "inputs": [{ "indexed": true, "name": "src", "type": "address" }, { "indexed": true, "name": "guy", "type": "address" }, { "indexed": false, "name": "wad", "type": "uint256" }], "name": "Approval", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "name": "src", "type": "address" }, { "indexed": true, "name": "dst", "type": "address" }, { "indexed": false, "name": "wad", "type": "uint256" }], "name": "Transfer", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "name": "dst", "type": "address" }, { "indexed": false, "name": "wad", "type": "uint256" }], "name": "Deposit", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "name": "src", "type": "address" }, { "indexed": false, "name": "wad", "type": "uint256" }], "name": "Withdrawal", "type": "event" }]
