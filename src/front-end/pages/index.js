@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useWeb3React } from "@web3-react/core"
-import { process, EVMAddresses } from '../next.config'
+import { EVMAddresses } from '../next.config'
 import { abi } from '../../back-end/artifacts/contracts/NERC20.sol/NERC20.json'
 import { abi as uniSwapAbi } from '../../back-end/artifacts/contracts/DeFi_Exchanges/UniSwapSingleSwap.sol/UniSwapSingleSwap.json'
 import { ethers } from "ethers"
 import { InjectedConnector } from "@web3-react/injected-connector"
-import { Button, Divider, Row, Col, Anchor, Form, Input, Radio } from 'antd'
+import { Button, Divider, Row, Col, Anchor, Form, Input } from 'antd'
 import { BigNumber } from "bignumber.js"
 const { WETH, ERC20ABI, DAI, NFTLoanAddress, UniSwapSingleSwapAddress } = EVMAddresses
 
@@ -18,18 +18,21 @@ export default function Home() {
   const [targetOffset, setTargetOffset] = useState(undefined);
   const [decimalValue, setDecimalValue] = useState()
   const [totalSupply, setTotalSupply] = useState()
+  const [totalInterest, setTotalInterest] = useState()
+  const [totalBorrowAmount, setTotalBorrowAmount] = useState()
+  const [totalBorrowedInterest, setTotalBorrowInterest] = useState()
   const [userSupply, setUserSupply] = useState()
   const [userInterestEarned, setInterestEarned] = useState()
+  const [userAmountBorrowed, setUserAmountBorrowed] = useState()
+  const [userBorrowedInterest, setBorrowedInterest] = useState()
+  const [userBorrowRepayAmount, setBorrowRepayAmount] = useState()
+
 
   let tradeEthForDaiInput = React.createRef()
   let supplyTokensInput = React.createRef()
   let withdrawTokensInput = React.createRef()
 
   const [form] = Form.useForm();
-  const [fields, setFields] = useState([{}])
-  let borrowDaiAmountInput = React.createRef()
-  let contractAddressInput = React.createRef()
-  let tokenIdInput = React.createRef()
 
   useEffect(() => {
     setTargetOffset(window.innerHeight / 2)
@@ -80,6 +83,54 @@ export default function Home() {
         let value = await contract.totalSupply()
         value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
         setTotalSupply(value.toString())
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+
+  let getTotalInterest = async () => {
+    if (active) {
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      try {
+        let value = await contract.totalAmountInvestedInterest()
+        value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
+        setTotalInterest(value.toString())
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+
+  let getTotalBorrowAmount = async () => {
+    if (active) {
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      try {
+        let value = await contract.totalAmountBorrowed()
+        value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
+        setTotalBorrowAmount(value.toString())
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+
+  let getTotalBorrowInterest = async () => {
+    if (active) {
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      try {
+        let value = await contract.totalBorrowedInterest()
+        value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
+        setTotalBorrowInterest(value.toString())
       } catch (error) {
         console.log(error)
       }
@@ -214,6 +265,51 @@ export default function Home() {
     }
   }
 
+  let getUserAmountBorrowed = async () => {
+    if (active) {
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      try {
+        let value = BigNumber((await contract.getAmountBorrowed(account)).toString())
+        setUserAmountBorrowed((value == 0) ? 0 : value.shiftedBy(-18).toFixed(18))
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+
+  let getUserBorrowedInterest = async () => {
+    if (active) {
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      try {
+        let value = BigNumber((await contract.viewBorrowAccruedTokensAmount(account)).toString())
+        setBorrowedInterest((value == 0) ? 0 : value.shiftedBy(-18).toFixed(18))
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+
+  let getUserBorrowRepayAmount = async () => {
+    if (active) {
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      try {
+        let value = BigNumber((await contract.getBorrowedRepayAmount(account)).toString())
+        setBorrowRepayAmount((value == 0) ? 0 : value.shiftedBy(-18).toFixed(18))
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+
   const formItemLayout =
   {
     labelCol: {
@@ -227,7 +323,7 @@ export default function Home() {
   {
     wrapperCol: {
       span: 14,
-      offset: 9,
+      offset: 10,
     },
   }
 
@@ -261,77 +357,108 @@ export default function Home() {
       </Row>
       <Row>
         <Col span={8}></Col>
-        <Col span={12}><span>NFT Loan Contract on Mumbai is located at address </span><a href="https://mumbai.polygonscan.com/address/0x7B427D442d5cCe45b9e6FB984206605B3c97f64D#code" target="_blank">0x7B427D442d5cCe45b9e6FB984206605B3c97f64D</a></Col>
+        <Col span={12}><span>NFT Loan Contract on Mumbai is located at address </span><a href="https://mumbai.polygonscan.com/address/0x7B427D442d5cCe45b9e6FB984206605B3c97f64D#code" target="_blank">0x7B427D442d5cCe45b9e6FB984206605B3c97f64D</a><span> - GitHub </span><a href="https://github.com/zack53/nftys-defi" target="_blank">Location</a></Col>
+      </Row>
+      <Row>
+        <Col span={8}></Col>
+        <Col span={12}><span>NFT Mint Contract on Mumbai is located at address </span><a href="https://mumbai.polygonscan.com/address/0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5#code" target="_blank">0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5</a><span> - GitHub </span><a href="https://github.com/zack53/nft-from-scratch" target="_blank">Location</a></Col>
       </Row>
       <Divider plain id='read-functions'>Contract State Read Functions</Divider>
       <Row>
         <Col span={10}></Col>
         <Col span={2}>
-          <Button type="secondary" onClick={() => getDecimals()}>View Decimals</Button>
+          <Button type="secondary" onClick={() => getDecimals()} style={{ float: "right" }}>View Decimals</Button>
         </Col>
-        <Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
           <p>Value: {decimalValue}</p>
         </Col>
       </Row>
       <Row>
         <Col span={10}></Col>
         <Col span={2}>
-          <Button type="secondary" onClick={() => getTotalSupply()}>View Total Supply</Button>
+          <Button type="secondary" onClick={() => getTotalSupply()} style={{ float: "right" }}>View Total Supply</Button>
         </Col>
-        <Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
           <p>Value: {totalSupply}</p>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={10}></Col>
+        <Col span={2}>
+          <Button type="secondary" onClick={() => getTotalInterest()} style={{ float: "right" }}>Total Earned Interest</Button>
+        </Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <p>Value: {totalInterest}</p>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={10}></Col>
+        <Col span={2}>
+          <Button type="secondary" onClick={() => getTotalBorrowAmount()} style={{ float: "right" }}>Total Borrowed</Button>
+        </Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <p>Value: {totalBorrowAmount}</p>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={10}></Col>
+        <Col span={2}>
+          <Button type="secondary" onClick={() => getTotalBorrowInterest()} style={{ float: "right" }}>Total Borrowed Interest</Button>
+        </Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <p>Value: {totalBorrowedInterest}</p>
         </Col>
       </Row>
       <Divider plain id='investment-functions'>Investment Functions</Divider>
       <Row>
         <Col span={10}></Col>
         <Col span={2}>
-          <Button type="secondary" onClick={() => getUserSuppliedToken()}>View Amount Invested</Button>
+          <Button type="secondary" onClick={() => getUserSuppliedToken()} style={{ float: "right" }}>View Amount Invested</Button>
         </Col>
-        <Col>
-          <p style={{ marginLeft: 24, marginTop: 5 }}>Value: {userSupply}</p>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <p>Value: {userSupply}</p>
         </Col>
       </Row>
       <Row>
         <Col span={10}></Col>
         <Col span={2}>
-          <Button type="secondary" onClick={() => getUserInterestEarned()}>View Interest Earned</Button>
+          <Button type="secondary" onClick={() => getUserInterestEarned()} style={{ float: "right" }}>View Interest Earned</Button>
         </Col>
-        <Col>
-          <p style={{ marginLeft: 24, marginTop: 5 }}>Value: {userInterestEarned}</p>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <p>Value: {userInterestEarned}</p>
         </Col>
       </Row>
       <Row>
         <Col span={11}></Col>
         <Col span={2}>
-          <Button type="primary" style={{ marginBottom: 8 }} onClick={() => claimAccruedTokens()}>Claim Accrued Tokens</Button>
+          <Button type="primary" style={{ marginBottom: 8, float: "right" }} onClick={() => claimAccruedTokens()} >Claim Accrued Tokens</Button>
         </Col>
       </Row>
       <Row>
         <Col span={10}></Col>
         <Col span={2}>
-          <Button type="secondary" onClick={() => tradeEthForDai(tradeEthForDaiInput.current.value)}>Trade MATIC for DAI</Button>
+          <Button type="secondary" onClick={() => tradeEthForDai(tradeEthForDaiInput.current.value)} style={{ float: "right" }}>Trade MATIC for DAI</Button>
         </Col>
         <Col>
-          <input style={{ marginLeft: 24, marginBottom: 5, marginTop: 5 }} ref={tradeEthForDaiInput}></input>
+          <input style={{ marginLeft: 24, marginBottom: 5, marginTop: 5 }} ref={tradeEthForDaiInput} placeholder="0"></input>
         </Col>
       </Row>
       <Row>
         <Col span={10}></Col>
         <Col span={2}>
-          <Button type="secondary" onClick={() => supplyTokens(supplyTokensInput.current.value)}>Supply Tokens</Button>
+          <Button type="secondary" onClick={() => supplyTokens(supplyTokensInput.current.value)} style={{ float: "right" }}>Supply Tokens</Button>
         </Col>
         <Col>
-          <input style={{ marginLeft: 24, marginBottom: 5, marginTop: 5 }} ref={supplyTokensInput}></input>
+          <input style={{ marginLeft: 24, marginBottom: 5, marginTop: 5 }} ref={supplyTokensInput} placeholder="0"></input>
         </Col>
       </Row>
       <Row>
         <Col span={10}></Col>
         <Col span={2}>
-          <Button type="secondary" onClick={() => withdrawTokens(withdrawTokensInput.current.value)}>Withdraw Tokens</Button>
+          <Button type="secondary" onClick={() => withdrawTokens(withdrawTokensInput.current.value)} style={{ float: "right" }}>Withdraw Tokens</Button>
         </Col>
         <Col>
-          <input style={{ marginLeft: 24, marginBottom: 5, marginTop: 5 }} ref={withdrawTokensInput}></input>
+          <input style={{ marginLeft: 24, marginBottom: 5, marginTop: 5 }} ref={withdrawTokensInput} placeholder="0"></input>
         </Col>
       </Row>
       <Divider plain id="mint-nft-functions">Mint NFT Functions</Divider>
@@ -343,6 +470,33 @@ export default function Home() {
       </Row>
       <Divider plain id="borrow-functions">Borrow Functions</Divider>
       <Row>
+        <Col span={10}></Col>
+        <Col span={2}>
+          <Button type="secondary" onClick={() => getUserAmountBorrowed()} style={{ float: "right" }}>View Amount Borrowed</Button>
+        </Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <p>Value: {userAmountBorrowed}</p>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={10}></Col>
+        <Col span={2}>
+          <Button type="secondary" onClick={() => getUserBorrowedInterest()} style={{ float: "right" }}>View Borrowed Interest</Button>
+        </Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <p>Value: {userBorrowedInterest}</p>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={10}></Col>
+        <Col span={2}>
+          <Button type="secondary" onClick={() => getUserBorrowRepayAmount()} style={{ float: "right" }}>View Repayment Amount</Button>
+        </Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <p>Value: {userBorrowRepayAmount}</p>
+        </Col>
+      </Row>
+      <Row>
         <Col span={9}></Col>
         <Col span={6}>
           <Form
@@ -350,8 +504,7 @@ export default function Home() {
             layout='horizontal'
             form={form}
             style={{ marginTop: 10 }}
-            ref={borrowDaiAmountInput}
-            name="control-ref"
+            name="borrowForm"
             onFinish={borrowDai}
             initialValues={{ remember: true }}
           >
