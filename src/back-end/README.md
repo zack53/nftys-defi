@@ -8,7 +8,7 @@ The NFT collateral provided is currently hard coded to only accept one NFT. Futu
 Implement OpenSea API for latest sell price to allow for any NFT collateral to be provided. Create a factory contract that can deploy and keep track of the NERC20 smart contracts. The factory contract should contain a mapping of ERC20 token to the respective NERC20 counterpart.
 
 ## Deployed Contracts
-The AdvancedCollectible smart contract is mentioned here due to the dependency at the moment for borrowing ERC20 tokens. This is the only NFT contract supported at the moment for borrowing until the OpenSea API can be implemented.
+The AdvancedCollectible smart contract is mentioned here due to the dependency at the moment for borrowing ERC20 tokens. This is the only NFT contract supported at the moment for borrowing until the OpenSea API can be implemented for price checking.
 
 | **Polygon Mumbai Address** | |
 | ----------- | ----------- |
@@ -38,7 +38,7 @@ The AdvancedCollectible smart contract is mentioned here due to the dependency a
 | transferOwnership | Transfers ownership to the address provided during the call. Only the owner of the contract can call this function. |
 | withdraw | Withdraws any matic token on the account. Only the owner of the contract can call this function. |
 | withdrawERC20Token | Withdraws provided ERC20 token address if there is any on the contract. Only the owner of the contract can call this function. |
-| setMinimumProfitDividor | Allows capability to set a minimum profit dividor value. Dividing by 400 would require a 25% minimum profit for the trade to execute. Dividing by 40000 would give you a .25% minimum profit for the trade to execute. |
+| setMinimumProfitDividor | Allows capability to set a minimum profit divider value. Dividing by 400 would require a 25% minimum profit for the trade to execute. Dividing by 40000 would give you a .25% minimum profit for the trade to execute. |
 
 | Read Functions | Functions that anyone can read on the contract |
 | ----------- | ----------- |
