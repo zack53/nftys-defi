@@ -417,11 +417,11 @@ export default function Home() {
       const signer = provider.getSigner()
       const contract = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, signer)
       try {
-        let tokenURI = await contract.tokenURI(tokenId - 1)
+        let tokenURI = await contract.tokenURI(tokenId)
         if (tokenURI.substring(0, 4) != 'ipfs') {
-          let breed = BigNumber(await contract.tokenIdToBreed(tokenId - 1)).toString()
-          await contract.setTokenURI(tokenId - 1, IPFSTokenURI[breed])
-          await displayOpenSeaURL(tokenId - 1)
+          let breed = BigNumber(await contract.tokenIdToBreed(tokenId)).toString()
+          await contract.setTokenURI(tokenId, IPFSTokenURI[breed])
+          await displayOpenSeaURL(tokenId)
         } else {
           alert('URI has already been set for this Doggie.')
         }
@@ -459,7 +459,7 @@ export default function Home() {
     if (active) {
       const contract = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, provider)
       try {
-        let results = BigNumber(await contract.tokenIdToBreed(tokenId - 1))
+        let results = BigNumber(await contract.tokenIdToBreed(tokenId))
         setTokenIdToBreed(dogBreedMapping[results.toNumber()])
       } catch (error) {
         console.log(error)
@@ -473,7 +473,7 @@ export default function Home() {
     if (active) {
       const contract = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, provider)
       try {
-        let results = await contract.tokenURI(tokenId - 1)
+        let results = await contract.tokenURI(tokenId)
         setViewDoggieTokenURI(results)
       } catch (error) {
         console.log(error)
