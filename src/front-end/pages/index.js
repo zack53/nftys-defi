@@ -8,6 +8,7 @@ import { ethers } from "ethers"
 import { InjectedConnector } from "@web3-react/injected-connector"
 import { Button, Divider, Row, Col, Anchor, Form, Input } from 'antd'
 import { BigNumber } from "bignumber.js"
+import axios from 'axios'
 const { WETH, ERC20ABI, DAI, NFTLoanAddress, UniSwapSingleSwapAddress, AdvancedCollectibleAddress } = EVMAddresses
 
 
@@ -265,7 +266,7 @@ export default function Home() {
     }
   }
 
-  let borrowDai = async ({ borrowAmount, nftAddress, tokenId }) => {
+  let borrowToken = async ({ borrowAmount, nftAddress, tokenId }) => {
     if (active) {
       const signer = provider.getSigner()
       // approve NFT
@@ -274,9 +275,9 @@ export default function Home() {
       try {
         console.log(borrowAmount)
         if (borrowAmount > 0 && tokenId >= 0) {
-          console.log(account, borrowAmount, '4', nftAddress, tokenId)
           await advancedCollectible.approve(NFTLoanAddress, tokenId)
-          //await contract.borrowTokens(account, borrowAmount, '4', nftAddress, tokenId)
+          let response = await axios.post('/api/borrow-token', { borrower: account, amount: borrowAmount, nftAddress: nftAddress, tokenId: tokenId })
+          console.log(response)
         } else {
           alert('Not a valid number')
         }
@@ -756,7 +757,7 @@ export default function Home() {
             form={form}
             style={{ marginTop: 10 }}
             name="borrowForm"
-            onFinish={borrowDai}
+            onFinish={borrowToken}
             initialValues={{ remember: true }}
           >
             <Form.Item label="Borrow Amount" name="borrowAmount" rules={[{ required: true, message: 'Please input borrow amount' }]}>
