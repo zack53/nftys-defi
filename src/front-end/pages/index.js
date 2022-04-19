@@ -529,10 +529,10 @@ export default function Home() {
         </Col>
       </Row>
       <Row>
-        <Col span={24} style={{ textAlign: "center" }}><span>NFT Loan Contract on Mumbai is located at address </span><a href="https://mumbai.polygonscan.com/address/0x7B427D442d5cCe45b9e6FB984206605B3c97f64D#code" target="_blank">0x7B427D442d5cCe45b9e6FB984206605B3c97f64D</a><span> - GitHub </span><a href="https://github.com/zack53/nftys-defi" target="_blank">Location</a></Col>
+        <Col span={24} style={{ textAlign: "center" }}><span>NFT Loan Contract on Mumbai is located at address </span><a href="https://mumbai.polygonscan.com/address/0x7B427D442d5cCe45b9e6FB984206605B3c97f64D#code" target="_blank" rel="noreferrer">0x7B427D442d5cCe45b9e6FB984206605B3c97f64D</a><span> - GitHub </span><a href="https://github.com/zack53/nftys-defi" target="_blank" rel="noreferrer">Location</a></Col>
       </Row>
       <Row>
-        <Col span={24} style={{ textAlign: "center" }}><span>NFT Mint Contract on Mumbai is located at address </span><a href="https://mumbai.polygonscan.com/address/0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5#code" target="_blank">0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5</a><span> - GitHub </span><a href="https://github.com/zack53/nft-from-scratch" target="_blank">Location</a></Col>
+        <Col span={24} style={{ textAlign: "center" }}><span>NFT Mint Contract on Mumbai is located at address </span><a href="https://mumbai.polygonscan.com/address/0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5#code" target="_blank" rel="noreferrer">0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5</a><span> - GitHub </span><a href="https://github.com/zack53/nft-from-scratch" target="_blank" rel="noreferrer">Location</a></Col>
       </Row>
       <Divider plain id='read-functions'>Contract State Read Functions</Divider>
       <Row>
@@ -634,7 +634,7 @@ export default function Home() {
       <Divider plain id="mint-nft-functions">Mint NFT Functions</Divider>
       <Row>
         <Col span={24} style={{ textAlign: "center" }}>
-          <span>Mint <a href='https://testnets.opensea.io/collection/doggies-vscmbqeyjs' target={'_blank'}>Doggie NFT</a> to be able to provide collateral for loan process.</span>
+          <span>Mint <a href="https://testnets.opensea.io/collection/doggies-vscmbqeyjs" target="_blank" rel="noreferrer">Doggie NFT</a> to be able to provide collateral for loan process.</span>
           <p>Future improvement would be to implement the OpenSea API to get latest token price and allow for any NFT to be used for collateral.</p>
         </Col>
       </Row>
@@ -672,7 +672,7 @@ export default function Home() {
           <span>Doggies newly Minted OpenSea NFT URL: </span>
         </Col>
         <Col style={{ marginLeft: 20 }}>
-          <a href={openSeaURL} target={'_blank'}>{openSeaURL}</a>
+          <a href={openSeaURL} target="_blank" rel="noreferrer">{openSeaURL}</a>
         </Col>
       </Row>
       <Row>
