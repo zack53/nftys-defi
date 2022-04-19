@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { useWeb3React } from "@web3-react/core"
 import { EVMAddresses, IPFSTokenURI } from '../next.config'
-import { abi } from '../../back-end/artifacts/contracts/NERC20.sol/NERC20.json'
-import { abi as uniSwapAbi } from '../../back-end/artifacts/contracts/DeFi_Exchanges/UniSwapSingleSwap.sol/UniSwapSingleSwap.json'
-import { abi as advancedCollectibleABI } from '../../back-end/artifacts/contracts/NFT/AdvancedCollectible.sol/AdvancedCollectible.json'
 import { ethers } from "ethers"
 import { InjectedConnector } from "@web3-react/injected-connector"
 import { Button, Divider, Row, Col, Anchor, Form, Input } from 'antd'
 import { BigNumber } from "bignumber.js"
 import axios from 'axios'
+
+const advancedCollectibleABI = EVMAddresses.AdvancedCollectibleABI
+const abi = EVMAddresses.NERC20ABI
+const uniSwapAbi = EVMAddresses.UniSwapSingleSwapABI
 const { WETH, ERC20ABI, DAI, NFTLoanAddress, UniSwapSingleSwapAddress, AdvancedCollectibleAddress } = EVMAddresses
 
 

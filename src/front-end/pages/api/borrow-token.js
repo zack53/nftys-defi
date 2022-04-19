@@ -1,13 +1,11 @@
 
 import HDWalletProvider from '@truffle/hdwallet-provider'
 import Web3 from 'web3'
-import NERC20 from '../../../back-end/artifacts/contracts/NERC20.sol/NERC20.json'
-import AdvancedCollectible from '../../../back-end/artifacts/contracts/NFT/AdvancedCollectible.sol/AdvancedCollectible.json'
 import { EVMAddresses } from '../../next.config'
 import { BigNumber } from 'bignumber.js'
-const nERC20ABI = NERC20.abi
-const advancedCollectibleABI = AdvancedCollectible.abi
-const web3 = new Web3(new HDWalletProvider(process.env.PRIVATE_KEY_1, process.env.DEV_RPC_URL))
+const nERC20ABI = EVMAddresses.NERC20ABI
+const advancedCollectibleABI = EVMAddresses.AdvancedCollectibleABI
+const web3 = new Web3(new HDWalletProvider(process.env.PRIVATE_KEY_1, process.env.MUMBAI_URL))
 const nERC20Contract = new web3.eth.Contract(nERC20ABI, EVMAddresses.NFTLoanAddress)
 const advancedCollectible = new web3.eth.Contract(advancedCollectibleABI, EVMAddresses.AdvancedCollectibleAddress)
 
