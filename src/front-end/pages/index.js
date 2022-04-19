@@ -271,7 +271,6 @@ export default function Home() {
     if (active) {
       const signer = provider.getSigner()
       // approve NFT
-      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       const advancedCollectible = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, signer)
       try {
         console.log(borrowAmount)
