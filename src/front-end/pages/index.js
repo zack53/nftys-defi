@@ -30,6 +30,7 @@ export default function Home() {
   const [userInterestEarned, setInterestEarned] = useState()
 
   // Mint NFT section state variables
+  const [doggieCounter, setDoggieCounter] = useState()
   const [userDogBalance, setUserDogBalance] = useState()
   const [mintRequestId, setRequestId] = useState()
   const [requestIdToTokenId, setRequestIdToTokenId] = useState()
@@ -82,7 +83,8 @@ export default function Home() {
 
   let getDecimals = async () => {
     if (active) {
-      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
         let value = await contract.decimals()
         setDecimalValue(value)
@@ -96,7 +98,8 @@ export default function Home() {
 
   let getTotalSupply = async () => {
     if (active) {
-      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
         let value = await contract.totalSupply()
         value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
@@ -111,7 +114,8 @@ export default function Home() {
 
   let getTotalInterest = async () => {
     if (active) {
-      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
         let value = await contract.totalAmountInvestedInterest()
         value = (value == '0') ? '0' : BigNumber(value.toString()).shiftedBy(-18).toFixed(18)
@@ -126,7 +130,8 @@ export default function Home() {
 
   let getTotalBorrowAmount = async () => {
     if (active) {
-      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
         let value = await contract.totalAmountBorrowed()
         value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
@@ -141,7 +146,8 @@ export default function Home() {
 
   let getTotalBorrowInterest = async () => {
     if (active) {
-      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
         let value = await contract.totalBorrowedInterest()
         value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
@@ -156,7 +162,8 @@ export default function Home() {
 
   let getUserSuppliedToken = async () => {
     if (active) {
-      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
         let value = await contract.getAmountInvested()
         value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
@@ -171,7 +178,8 @@ export default function Home() {
 
   let getUserInterestEarned = async () => {
     if (active) {
-      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
         let value = BigNumber((await contract.viewAccruedTokensAmount()).toString())
         setInterestEarned((value == 0) ? 0 : value.shiftedBy(-18).toFixed(18))
@@ -260,13 +268,15 @@ export default function Home() {
   let borrowDai = async ({ borrowAmount, nftAddress, tokenId }) => {
     if (active) {
       const signer = provider.getSigner()
+      // approve NFT
       const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
+      const advancedCollectible = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, signer)
       try {
         console.log(borrowAmount)
         if (borrowAmount > 0 && tokenId >= 0) {
-          let decimalShiftAmount = BigNumber(borrowAmount.toString()).shiftedBy(18).toString()
-          console.log(account, decimalShiftAmount, '4', nftAddress, tokenId)
-          //await contract.borrowTokens(account, decimalShiftAmount, '4', nftAddress, tokenId)
+          console.log(account, borrowAmount, '4', nftAddress, tokenId)
+          await advancedCollectible.approve(NFTLoanAddress, tokenId)
+          //await contract.borrowTokens(account, borrowAmount, '4', nftAddress, tokenId)
         } else {
           alert('Not a valid number')
         }
@@ -280,7 +290,8 @@ export default function Home() {
 
   let getUserAmountBorrowed = async () => {
     if (active) {
-      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
         let value = BigNumber((await contract.getAmountBorrowed(account)).toString())
         setUserAmountBorrowed((value == 0) ? 0 : value.shiftedBy(-18).toFixed(18))
@@ -294,7 +305,8 @@ export default function Home() {
 
   let getUserBorrowedInterest = async () => {
     if (active) {
-      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
         let value = BigNumber((await contract.viewBorrowAccruedTokensAmount(account)).toString())
         setBorrowedInterest((value == 0) ? 0 : value.shiftedBy(-18).toFixed(18))
@@ -308,10 +320,25 @@ export default function Home() {
 
   let getUserBorrowRepayAmount = async () => {
     if (active) {
-      const contract = new ethers.Contract(NFTLoanAddress, abi, provider)
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(NFTLoanAddress, abi, signer)
       try {
         let value = BigNumber((await contract.getBorrowedRepayAmount(account)).toString())
         setBorrowRepayAmount((value == 0) ? 0 : value.shiftedBy(-18).toFixed(18))
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      console.log("Please install MetaMask")
+    }
+  }
+
+  let getDoggieCounter = async () => {
+    if (active) {
+      const contract = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, provider)
+      try {
+        let value = BigNumber((await contract.tokenCounter()).toString())
+        setDoggieCounter(value.toString())
       } catch (error) {
         console.log(error)
       }
@@ -355,7 +382,6 @@ export default function Home() {
       try {
         contract.on('requestedCollectible', (minter, requestId) => {
           if (minter == account) {
-            console.log(minter, requestId)
             setRequestId(requestId)
             eventMintCollectible(requestId)
           }
@@ -374,8 +400,7 @@ export default function Home() {
       try {
         contract.on('mintCollectible', (requestId, tokenId, breed) => {
           if (origRequestId == requestId) {
-            console.log(requestId, tokenId, breed)
-            setDoggieTokenURI(tokenId)
+            setDoggieTokenURI(tokenId + 1)
           }
         })
       } catch (error) {
@@ -385,16 +410,20 @@ export default function Home() {
       console.log("Please install MetaMask")
     }
   }
+
   let setDoggieTokenURI = async (tokenId) => {
     if (active) {
       const signer = provider.getSigner()
       const contract = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, signer)
       try {
-        let breed = BigNumber(await contract.tokenIdToBreed(tokenId)).toString()
-        console.log(IPFSTokenURI[breed])
-        console.log(tokenId, breed)
-        await contract.setTokenURI(tokenId, IPFSTokenURI[breed])
-        await displayOpenSeaURL()
+        let tokenURI = await contract.tokenURI(tokenId - 1)
+        if (tokenURI.substring(0, 4) != 'ipfs') {
+          let breed = BigNumber(await contract.tokenIdToBreed(tokenId - 1)).toString()
+          await contract.setTokenURI(tokenId - 1, IPFSTokenURI[breed])
+          await displayOpenSeaURL(tokenId - 1)
+        } else {
+          alert('URI has already been set for this Doggie.')
+        }
       } catch (error) {
         console.log(error)
       }
@@ -415,6 +444,7 @@ export default function Home() {
       try {
         let results = await contract.requestIdToTokenId(requestId)
         setRequestIdToTokenId(results.toString())
+        displayOpenSeaURL()
       } catch (error) {
         console.log(error)
       }
@@ -428,7 +458,7 @@ export default function Home() {
     if (active) {
       const contract = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, provider)
       try {
-        let results = BigNumber(await contract.tokenIdToBreed(tokenId))
+        let results = BigNumber(await contract.tokenIdToBreed(tokenId - 1))
         setTokenIdToBreed(dogBreedMapping[results.toNumber()])
       } catch (error) {
         console.log(error)
@@ -442,7 +472,7 @@ export default function Home() {
     if (active) {
       const contract = new ethers.Contract(AdvancedCollectibleAddress, advancedCollectibleABI, provider)
       try {
-        let results = await contract.tokenURI(tokenId)
+        let results = await contract.tokenURI(tokenId - 1)
         setViewDoggieTokenURI(results)
       } catch (error) {
         console.log(error)
@@ -608,6 +638,14 @@ export default function Home() {
       </Row>
       <Row>
         <Col span={2} offset={10}>
+          <Button type="secondary" onClick={() => getDoggieCounter()} style={{ float: "right" }}>Total Doggies</Button>
+        </Col>
+        <Col style={{ marginLeft: 20, marginTop: 5 }}>
+          <p>Value: {doggieCounter}</p>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={2} offset={10}>
           <Button type="secondary" onClick={() => getDogBalance()} style={{ float: "right" }}>View Owned Doggies</Button>
         </Col>
         <Col style={{ marginLeft: 20, marginTop: 5 }}>
@@ -670,7 +708,7 @@ export default function Home() {
       </Row>
       <Row>
         <Col span={4} offset={10}>
-          <span>The token URI should be set automatically during the minting process once the random number is generated, but the button below will manually set the token URI if you aren't seeing the tokenURI after 80 seconds or so.</span>
+          <span>The listener will automatically request a signature to set the token URI once the dog has been minted. The delay to the minting process is due to using the VRFConsumerBase to generate a random number that is used to determine the breed. The button below will manually set the token URI if you do not receive a signature request after the Mint Random Dog NFT has completed. Please allow up to 5 minutes for the signature request to show up after the mint has been confirmed.</span>
         </Col>
       </Row>
       <Row>
