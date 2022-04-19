@@ -77,6 +77,7 @@ The AdvancedCollectible smart contract is mentioned here due to the dependency a
 | name | ERC721 function. |
 | ownerOf | ERC721 function. |
 | requestIdToSender | Takes in requestId. Returns the msg.sender of the CreateDoggies request. |
+| requestIdToTokenId | Takes in requestId. Returns the tokenId related to the requestId. |
 | supportsInterface | ERC721 function. |
 | symbol | ERC721 function. |
 | tokenCounter | Returns total number of minted Doggies. |
