@@ -19,22 +19,22 @@ The AdvancedCollectible smart contract is mentioned here due to the dependency a
 | Write Functions | Functions that anyone can call on the contract |
 | ----------- | ----------- |
 | approve | ERC20 Approve function. |
-| borrowTokens | Takes in borrow address, amount uint256, nftCollateralAmount uint256, NFTContract address, tokenId uint256. The borrowTokens function requires approval of transferring NFT. The smart contract transfers the NFT to the address and in return gives the ERC20 counterpart token that is linked to this Address. The nftCollateralAmount will be provided via a back-end Rest-API by using the OpenSea API to get the latest price of the NFT. The latest price determines the amount that can be borrowed. The borrow amount has to be less than or equal nftCollateralAmount / 4. |
-| claimAccruedTokens | Allows the msg.sender to claim the amount of accrued tokens from their ERC20 investment. The claimed tokens are in the NERC20 format until the user calls the withdrawsTokens function. |
+| borrowTokens | Takes in borrow address, amount uint256, nftCollateralAmount uint256, NFTContract address, tokenId uint256. The borrowTokens function requires approval of transferring NFT. The smart contract transfers the NFT to the address and in return gives the ERC20 counterpart token that is linked to this Address. The nftCollateralAmount will be provided via a back-end Rest-API by using the OpenSea API to get the latest price of the NFT. The latest price determines the amount that can be borrowed. The borrow amount has to be less than or equal nftCollateralAmount / 4. Emits BorrowedToken(address indexed borrower, uint256 amountBorrowed)  |
+| claimAccruedTokens | Allows the msg.sender to claim the amount of accrued tokens from their ERC20 investment. The claimed tokens are in the NERC20 format until the user calls the withdrawsTokens function. Emits InvestedTokenClaimed(address indexed investor, uint256 amountInvested) |
 | decreaseAllowance | ERC20 function |
-| forceLiquidateIdleNFT | Takes in nftOwner address. Calling this function will try to force liquidate a nft owner's position. This will only execute if the criteria for liquidation is met. The liquidation will only execute if the outstanding balance of the borrower's position is greater than or equal to half of the NFT value. This is a safety precaution to ensure NFTs aren't lost on the smart contract forever. The liquidation process moves them to a mapping that allows for them to be sold. |
+| forceLiquidateIdleNFT | Takes in nftOwner address. Calling this function will try to force liquidate a nft owner's position. This will only execute if the criteria for liquidation is met. The liquidation will only execute if the outstanding balance of the borrower's position is greater than or equal to half of the NFT value. This is a safety precaution to ensure NFTs aren't lost on the smart contract forever. The liquidation process moves them to a mapping that allows for them to be sold. Emits NFTLiquidated(address indexed NFTContract, uint256 tokenId) |
 | increaseAllowance | ERC20 function. |
-| repayBorrowAmount | Takes in borrower address and amount uint256. Repays the amount on the borrower's account. The repayFullBorrowAmount is called from within repayBorrowAmount if the payment exceeds the full repayment amount. |
+| repayBorrowAmount | Takes in borrower address and amount uint256. Repays the amount on the borrower's account. The repayFullBorrowAmount is called from within repayBorrowAmount if the payment exceeds the full repayment amount. Emits PayedOnLoan(address indexed borrower, uint256 amountPaid) |
 | repayFullBorrowAmount | Takes in borrower address. This will calculate the full repayment amount and transfers that to the smart contract in return for the NFT. |
-| sellLiquidNFT | Takes in purchaser address, purchaseAmount uint256, nftContract address, tokenId uint256. This is only callable by owner. This will sell a liquidated NFT to the purchaser. There are checks in place to ensure we sell the NFT for a minimum amount. This may be taken out of the smart contract logic and put into the back-end API. |
+| sellLiquidNFT | Takes in purchaser address, purchaseAmount uint256, nftContract address, tokenId uint256. This is only callable by owner. This will sell a liquidated NFT to the purchaser. There are checks in place to ensure we sell the NFT for a minimum amount. This may be taken out of the smart contract logic and put into the back-end API. Emits NFTLiquiditySold(address purchaser, uint256 purchaseAmount, address NFTContract, uint256 tokenId) |
 | setCurrentBorrowInterestRatePerBlock | Takes in amount uint8. Requires owner to set. Sets the current interest rate per block for borrowers. Future improvement would be to automate this using supply and demand. |
 | setCurrentInterestRatePerBlock | Takes in amount uint8. Requires owner to set. Sets the current interest rate per block for investors. Future improvement would be to automate this using supply and demand. |
 | shutdownContract | Requires owner. Shuts down the contract halting anything from happening in case of an emergency. |
 | startContract | Requires owner. Starts the contract back-up. |
-| supplyTokens | Takes in amount uint256. Supplies the amount of the ERC20 token in return for NERC20 token. The NERC20 token is used to identify how much an investor has in the contract. |
+| supplyTokens | Takes in amount uint256. Supplies the amount of the ERC20 token in return for NERC20 token. The NERC20 token is used to identify how much an investor has in the contract. Emits InvestedToken(address indexed investor, uint256 amountInvested) |
 | transfer | ERC20 function. |
 | transferFrom | ERC20 function. |
-| withdrawTokens | Takes in amount uint256. Withdraws transfers ERC20 token back to investor and burns the NERC20 token supply. |
+| withdrawTokens | Takes in amount uint256. Withdraws transfers ERC20 token back to investor and burns the NERC20 token supply. Emits WithdrawInvestedTokens(address indexed investor,uint256 amountWithdrawn) |
 
 | Read Functions | Functions that anyone can read on the contract |
 | ----------- | ----------- |
@@ -61,17 +61,27 @@ The AdvancedCollectible smart contract is mentioned here due to the dependency a
 
 | Write Functions | Functions that owner can call on the contract |
 | ----------- | ----------- |
-| myFlashLoanCall | Requires token0, token1, direction: 1 for token0 -> token1 using UniSwap and token1 -> token0 using SushiSwap 0 for SushiSwap to UniSwap, poolFee (required for UniSwap), amountIn, amountOut, deadline (required for SushiSwap). Executing this function will call a flash loan for the amountIn and start a trade from token0 to token1 and then from token1 back to token0 using the other exchange depending on the direction. Leaving the amountOut as 0 will ensure a trade happens. The trade will fail if there isn't enough token0 left on the contract for the premium Aave charges + the loan amount to be withdrawn. Only the owner of the Flash Loan contract will be able to execute this function. |
-| transferOwnership | Transfers ownership to the address provided during the call. Only the owner of the contract can call this function. |
-| withdraw | Withdraws any matic token on the account. Only the owner of the contract can call this function. |
-| withdrawERC20Token | Withdraws provided ERC20 token address if there is any on the contract. Only the owner of the contract can call this function. |
-| setMinimumProfitDividor | Allows capability to set a minimum profit divider value. Dividing by 400 would require a 25% minimum profit for the trade to execute. Dividing by 40000 would give you a .25% minimum profit for the trade to execute. |
+| CreateDoggies | Starts the process to mint a new NFT. The process calls requestRandomness from the VRFConsumerBase contract. The call requires LINK to work. The requestRandomness returns a random number to fulfillRandomness function. Emits requestedCollectible(address indexed minter, bytes32 indexed requestId)   |
+| fulfillRandomness | The fulfillRandomness function mints the NFT and sets the breed to a 1 of 3 choices. Emits mintCollectible(bytes32 indexed requestId, uint256 tokenId, Breed breed) |
+| safeTransferFrom | ERC721 function. |
+| safeTransferFrom | ERC721 function. |
+| setApprovalForAll | ERC721 function. |
+| setTokenURI | Takes in tokenId uint256 and tokenURI string. Sets the tokenId's tokenURI to the tokenURI value provided. |
+| transferFrom | ERC721 function. |
 
 | Read Functions | Functions that anyone can read on the contract |
 | ----------- | ----------- |
-| ADDRESSES_PROVIDER | The Aave contract address that provides the POOL address |
-| POOL | The pool contract address that the flashLoan is called on |
-| getOwner | The current Owner of the Flash Loan Contract |
+| balanceOf | Takes in owner address. Returns number of Doggies owned. |
+| getApproved | ERC721 function. |
+| isApprovedForAll | ERC721 function. |
+| name | ERC721 function. |
+| ownerOf | ERC721 function. |
+| requestIdToSender | Takes in requestId. Returns the msg.sender of the CreateDoggies request. |
+| supportsInterface | ERC721 function. |
+| symbol | ERC721 function. |
+| tokenCounter | Returns total number of minted Doggies. |
+| tokenIdToBreed | Takes in tokenId uint256. Returns the breed of the tokenId. |
+| tokenURI | ERC721 function. |
 
 # Useful Resources
 
