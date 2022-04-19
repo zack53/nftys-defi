@@ -33,10 +33,10 @@ app.post('/api/borrow-token', async (req, res) => {
         let collateralValue = breedValue[breed]
         if (collateralValue / 4 >= amount) {
             try {
-                await nERC20Contract.methods.borrowTokens(borrower, BigNumber(amount).shiftedBy(18).toString(), collateralValue, nftAddress, tokenId).send({ from: process.env.PUBLIC_KEY_1 })
+                await nERC20Contract.methods.borrowTokens(borrower, BigNumber(amount).shiftedBy(18).toString(), collateralValue, nftAddress, tokenId).send({ from: web3.utils.toChecksumAddress(process.env.PUBLIC_KEY_1) })
                 res.send(JSON.stringify({ message: "Borrow amount has been accepted." }))
             } catch (error) {
-                res.status('400').send(JSON.stringify({ error }))
+                res.status('400').send(JSON.stringify(error))
                 console.log(error)
             }
         } else {

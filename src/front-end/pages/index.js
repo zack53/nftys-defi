@@ -763,7 +763,7 @@ export default function Home() {
               <Input placeholder="0" />
             </Form.Item>
             <Form.Item label="NFT Address" name="nftAddress" rules={[{ required: true, message: 'Please input NFT address' }]} initialValue="0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5">
-              <Input defaultValue="0xae87e56a9dF1Baf99F77B7A75F6EFDFD03bc41e5" />
+              <Input />
             </Form.Item>
             <Form.Item label="Token Id" name="tokenId" rules={[{ required: true, message: 'Please input token id' }]}>
               <Input placeholder="0" />
