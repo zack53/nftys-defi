@@ -94,7 +94,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -110,7 +110,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -126,7 +126,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -142,7 +142,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -158,7 +158,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -174,7 +174,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -189,7 +189,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -203,7 +203,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -224,7 +224,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
   let withdrawTokens = async (amount) => {
@@ -242,7 +242,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
   let tradeEthForDai = async (amount) => {
@@ -263,7 +263,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -285,7 +285,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -300,7 +300,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -315,7 +315,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -330,7 +330,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -344,7 +344,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -358,7 +358,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -373,7 +373,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -391,7 +391,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -408,7 +408,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -429,7 +429,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -450,7 +450,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -465,7 +465,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -479,7 +479,7 @@ export default function Home() {
         alert(error)
       }
     } else {
-      alert("Please connect your MetaMask wallet")
+      alert("Please connect your MetaMask wallet using the Polygon Mumbai network")
     }
   }
 
@@ -514,9 +514,9 @@ export default function Home() {
         <Col>
           {hasMetamask ? (
             active ? (
-              <Button type="primary" style={{ margin: 16 }}>Connected!</Button>
+              <Button type="primary" style={{ marginLeft: 16, marginRight: 16, marginBottom: 16, marginTop: 50 }}>Connected!</Button>
             ) : (
-              <Button type="primary" style={{ margin: 16 }} onClick={() => connect()}>Connect Wallet</Button>
+              <Button type="primary" style={{ marginLeft: 16, marginRight: 16, marginBottom: 16, marginTop: 50 }} onClick={() => connect()}>Connect Wallet</Button>
             )
           ) : (
             "Please install metamask"
@@ -524,7 +524,7 @@ export default function Home() {
         </Col>
         <Col span={1}></Col>
         <Col span={4}>
-          <h1 style={{ margin: 8, color: "grey" }}>NFT Loan Platform</h1>
+          <h1 style={{ marginLeft: 8, marginRight: 8, marginBottom: 8, marginTop: 40, color: "grey" }}>NFT Loan Platform</h1>
         </Col>
       </Row>
       <Row>
