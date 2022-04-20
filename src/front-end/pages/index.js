@@ -77,8 +77,8 @@ export default function Home() {
       try {
         await activate(injected)
         setHasMetamask(true)
-      } catch (e) {
-        console.log(e)
+      } catch (error) {
+        alert(error)
       }
     }
   }
@@ -91,10 +91,10 @@ export default function Home() {
         let value = await contract.decimals()
         setDecimalValue(value)
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -107,10 +107,10 @@ export default function Home() {
         value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
         setTotalSupply(value.toString())
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -123,10 +123,10 @@ export default function Home() {
         value = (value == '0') ? '0' : BigNumber(value.toString()).shiftedBy(-18).toFixed(18)
         setTotalInterest(value)
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -139,10 +139,10 @@ export default function Home() {
         value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
         setTotalBorrowAmount(value.toString())
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -155,10 +155,10 @@ export default function Home() {
         value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
         setTotalBorrowInterest(value.toString())
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -171,10 +171,10 @@ export default function Home() {
         value = (value == '0') ? value : BigNumber(value.toString()).shiftedBy(-18)
         setUserSupply(value.toString())
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -186,10 +186,10 @@ export default function Home() {
         let value = BigNumber((await contract.viewAccruedTokensAmount()).toString())
         setInterestEarned((value == 0) ? 0 : value.shiftedBy(-18).toFixed(18))
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -200,10 +200,10 @@ export default function Home() {
       try {
         await contract.claimAccruedTokens()
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -221,10 +221,10 @@ export default function Home() {
           alert('Not a valid number')
         }
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
   let withdrawTokens = async (amount) => {
@@ -239,10 +239,10 @@ export default function Home() {
           alert('Not a valid number')
         }
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
   let tradeEthForDai = async (amount) => {
@@ -260,10 +260,10 @@ export default function Home() {
           alert('Not a valid number')
         }
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -282,10 +282,10 @@ export default function Home() {
           alert('Not a valid number')
         }
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -297,10 +297,10 @@ export default function Home() {
         let value = BigNumber((await contract.getAmountBorrowed(account)).toString())
         setUserAmountBorrowed((value == 0) ? 0 : value.shiftedBy(-18).toFixed(18))
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -312,10 +312,10 @@ export default function Home() {
         let value = BigNumber((await contract.viewBorrowAccruedTokensAmount(account)).toString())
         setBorrowedInterest((value == 0) ? 0 : value.shiftedBy(-18).toFixed(18))
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -327,10 +327,10 @@ export default function Home() {
         let value = BigNumber((await contract.getBorrowedRepayAmount(account)).toString())
         setBorrowRepayAmount((value == 0) ? 0 : value.shiftedBy(-18).toFixed(18))
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -341,10 +341,10 @@ export default function Home() {
         let value = BigNumber((await contract.tokenCounter()).toString())
         setDoggieCounter(value.toString())
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -355,10 +355,10 @@ export default function Home() {
         let value = BigNumber((await contract.balanceOf(account)).toString())
         setUserDogBalance(value.toString())
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -370,10 +370,10 @@ export default function Home() {
         eventRequestedCollectible()
         await contract.CreateDoggies('')
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -388,10 +388,10 @@ export default function Home() {
           }
         })
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -405,10 +405,10 @@ export default function Home() {
           }
         })
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -426,10 +426,10 @@ export default function Home() {
           alert('URI has already been set for this Doggie.')
         }
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -447,10 +447,10 @@ export default function Home() {
         setRequestIdToTokenId(results.toString())
         displayOpenSeaURL()
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -462,10 +462,10 @@ export default function Home() {
         let results = BigNumber(await contract.tokenIdToBreed(tokenId))
         setTokenIdToBreed(dogBreedMapping[results.toNumber()])
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
@@ -476,10 +476,10 @@ export default function Home() {
         let results = await contract.tokenURI(tokenId)
         setViewDoggieTokenURI(results)
       } catch (error) {
-        console.log(error)
+        alert(error)
       }
     } else {
-      console.log("Please install MetaMask")
+      alert("Please connect your MetaMask wallet")
     }
   }
 
